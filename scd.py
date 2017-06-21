@@ -1,12 +1,13 @@
+import fnmatch
 import os.path
 import sys
 from functools import reduce
 
 import colors
 import formatting
-from configuration import config
+import settings
 from deployment import ConfigDeployer
-from server_status import ServerStatus
+from settings import config
 
 HOME = os.path.expanduser('~')
 
@@ -19,9 +20,10 @@ def flat_map(lists):
 
 def modified_files(all_files, last_modified):
     def modified(file):
-        if os.path.isdir(file):
-            if config['ignore_git_folders'] and file.endswith('.git'):
+        for ignore in config['ignore_files']:
+            if fnmatch.fnmatch(file, ignore):
                 return []
+        if os.path.isdir(file):
             return flat_map([modified(file + '/' + f) for f in os.listdir(file)])
         if os.path.getctime(file) > last_modified:
             return [os.path.abspath(file)]
@@ -34,13 +36,9 @@ def missing_programs(programs, installed):
     return [prog for prog in programs if prog not in installed]
 
 
-if len(sys.argv) == 0:
-    print("Usage: scd <server>")
-    sys.exit(0)
+server_name = settings.SERVER
 
-server_name = sys.argv[1]
-server_statuses = ServerStatus()
-server_status = server_statuses[server_name]
+server_status = settings.SERVER_STATUS[server_name]
 
 programs_to_install = missing_programs(config['programs'], server_status['installed_programs'])
 files_to_deploy = modified_files(config['files'], server_status['last_modified'])
@@ -52,5 +50,5 @@ config_deployer = ConfigDeployer(server_name, programs_to_install, files_to_depl
 success = config_deployer.deploy()
 if success:
     print(formatting.PREFIX + colors.GREEN("Configuration successfully deployed."))
-    server_statuses.update(server_name)
-    server_statuses.save()
+    settings.SERVER_STATUS.update(server_name)
+    settings.SERVER_STATUS.save()

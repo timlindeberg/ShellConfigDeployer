@@ -4,10 +4,10 @@ import zipfile
 
 import paramiko
 
-import configuration
 import formatting
+import settings
 from colors import *
-from configuration import config
+from settings import config
 
 ZIP_NAME = 'scd_conf.zip'
 
@@ -17,14 +17,19 @@ class ConfigDeployer:
         self.programs = programs
         self.files = files
 
-        self.zip = configuration.SCD_FOLDER + '/' + ZIP_NAME
+        self.zip = settings.SCD_FOLDER + '/' + ZIP_NAME
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
         try:
-            ssh.connect(server, username=config['username'], password='vagrant', port=2222)
+            ssh.connect(server, username=config['username'], password=settings.PASSWORD, port=settings.PORT)
         except paramiko.ssh_exception.AuthenticationException:
-            print(formatting.PREFIX + "Invalid password")
+            print(formatting.PREFIX + RED("Invalid password"))
+            sys.exit(1)
+        except Exception as e:
+            print(formatting.PREFIX + RED_ + "Could not connect to " + MAGENTA(server))
+            print(formatting.PREFIX + RED(str(e)))
             sys.exit(1)
 
         self.transport = ssh.get_transport()
@@ -42,7 +47,7 @@ class ConfigDeployer:
         if len(self.files) != 0:
             print(formatting.PREFIX + "Deploying " + MAGENTA(str(len(self.files))) + " file(s)")
             if len(self.files) < 10:
-                f = [formatting.PREFIX + '     ' + MAGENTA(f.replace(configuration.HOME, '~')) for f in self.files]
+                f = [formatting.PREFIX + '     ' + MAGENTA(f.replace(settings.HOME, '~')) for f in self.files]
                 print('\n'.join(f))
             self.deploy_zip()
             commands.append('cd ~; unzip -q -o ./%s; rm %s' % (ZIP_NAME, ZIP_NAME))
@@ -61,7 +66,7 @@ class ConfigDeployer:
             line = stdout.readline()
             if len(line) == 0:
                 break
-            print("%s   %s" % (formatting.PREFIX, line.rstrip()))
+            print(formatting.PREFIX + line.rstrip())
 
         stdout.close()
         session.close()

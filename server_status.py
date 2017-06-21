@@ -2,12 +2,12 @@ import json
 import os
 import time
 
-import configuration
+import settings
 
 
 class ServerStatus:
     HOME = os.path.expanduser('~')
-    SERVER_STATUS_FILE = configuration.SCD_FOLDER + '/server_status'
+    SERVER_STATUS_FILE = settings.SCD_FOLDER + '/server_status'
 
     @staticmethod
     def default_status():
@@ -38,7 +38,7 @@ class ServerStatus:
         status = self.status[server] if server in self.status else {}
 
         status['last_modified'] = time.time()
-        status['installed_programs'] = configuration.config['programs']
+        status['installed_programs'] = settings.config['programs']
         self.status[server] = status
 
     def save(self):
