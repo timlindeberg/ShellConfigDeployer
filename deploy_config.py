@@ -1,13 +1,14 @@
-import datetime
-import json
 import os.path
 import sys
+from functools import reduce
 
-import deployment
-from config import config
+import colors
+import formatting
+from configuration import config
+from deployment import ConfigDeployer
+from server_status import ServerStatus
 
 HOME = os.path.expanduser('~')
-SERVER_STATUS_FILE = HOME + '/.scdstatus'
 
 
 def flat_map(lists):
@@ -16,19 +17,7 @@ def flat_map(lists):
     return reduce(list.__add__, lists)
 
 
-def default_status():
-    return {
-        'last_modified': 0,
-        'installed_programs': []
-    }
-
-
-def read_json(file):
-    with open(file) as f:
-        return json.load(f)
-
-
-def modifed_files(all_files, last_modified):
+def modified_files(all_files, last_modified):
     def modified(file):
         if os.path.isdir(file):
             if config['ignore_git_folders'] and file.endswith('.git'):
@@ -38,17 +27,7 @@ def modifed_files(all_files, last_modified):
             return [os.path.abspath(file)]
         return []
 
-    home = os.path.expanduser('~') + '/'
-    return flat_map([modified(home + file) for file in all_files])
-
-
-def read_server_status(server_name):
-    if not os.path.isfile(SERVER_STATUS_FILE):
-        return default_status()
-
-    with open(SERVER_STATUS_FILE) as f:
-        server_status = json.load(f).get(server_name)
-        return default_status() if server_status is None else server_status
+    return flat_map([modified(HOME + '/' + file) for file in all_files])
 
 
 def missing_programs(programs, installed):
@@ -60,23 +39,18 @@ if len(sys.argv) == 0:
     sys.exit(0)
 
 server_name = sys.argv[1]
-
-server_status = read_server_status(server_name)
+server_statuses = ServerStatus()
+server_status = server_statuses[server_name]
 
 programs_to_install = missing_programs(config['programs'], server_status['installed_programs'])
+files_to_deploy = modified_files(config['files'], server_status['last_modified'])
 
-print("Programs to install: %s" % programs_to_install)
+if len(files_to_deploy) == 0 and len(programs_to_install) == 0:
+    sys.exit(0)
 
-files = modifed_files(config['files'], server_status['last_modified'])
-
-print("Modified files: %s" % len(files))
-
-s = "01/12/2011"
-x = datetime.datetime.strptime(s, "%d/%m/%Y").timestamp()
-
-print(x)
-
-if len(files) != 0:
-    deployment.deploy_to_server(server_name, files)
-
-print(files)
+config_deployer = ConfigDeployer(server_name, programs_to_install, files_to_deploy)
+success = config_deployer.deploy()
+if success:
+    print(formatting.PREFIX + colors.GREEN("Configuration successfully deployed."))
+    server_statuses.update(server_name)
+    server_statuses.save()

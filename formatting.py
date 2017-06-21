@@ -1,3 +1,3 @@
 import colors
 
-PREFIX = colors.BOLD + colors.CYAN + "SCD > " + colors.CLEAR
+PREFIX = colors.BOLD_ + colors.CYAN_ + "SCD | " + colors.CLEAR_
