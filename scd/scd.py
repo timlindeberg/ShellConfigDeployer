@@ -1,56 +1,59 @@
 import fnmatch
 import os.path
+import signal
 import sys
-from functools import reduce
 
-import settings
-from colors import *
+from configuration import settings
+from configuration.settings import config
 from deployment import ConfigDeployer
-from printer import Printer
-from settings import config
+from formatting.colors import *
+from formatting.printer import Printer
 
 printer = Printer(settings.VERBOSE)
 
 
-def flat_map(lists):
-    if len(lists) == 0:
-        return []
-    return reduce(list.__add__, lists)
-
-
 def modified_files(all_files, last_modified):
+    modified_files.res = []
+
     def modified(file):
         for ignore in config['ignore_files']:
             if fnmatch.fnmatch(file, ignore):
-                return []
+                return
         if os.path.isdir(file):
-            return flat_map([modified(file + '/' + f) for f in os.listdir(file)])
-        if os.path.getctime(file) > last_modified:
-            return [os.path.abspath(file)]
-        return []
+            for f in os.listdir(file):
+                modified(file + '/' + f)
+            return
 
-    res = []
+        if os.path.getctime(file) > last_modified:
+            modified_files.res.append(os.path.abspath(file))
+
     for f in all_files:
         printer.verbose("Checking timestamp of " + MAGENTA(f))
-        res += modified(settings.HOME + '/' + f)
-    return res
+        modified(settings.HOME + '/' + f)
+
+    return modified_files.res
 
 
 def missing_programs(programs, installed):
     return [prog for prog in programs if prog not in installed]
 
 
+def signal_handler(signal, frame):
+    printer.info(RED("Received Ctrl+C, exiting..."))
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, signal_handler)
+
 server_name = settings.SERVER
 
-server_status = settings.SERVER_STATUS.default_status() if settings.FORCE else settings.SERVER_STATUS[server_name]
+server_status = settings.SERVER_STATUS.initial_status() if settings.FORCE else settings.SERVER_STATUS[server_name]
 
 programs_to_install = missing_programs(config['programs'], server_status['installed_programs'])
 files_to_deploy = modified_files(config['files'], server_status['last_modified'])
 
-num_files_to_deploy = len(files_to_deploy)
-num_programs_to_install = len(programs_to_install)
-printer.verbose("Found " + MAGENTA(num_files_to_deploy) + " files to deploy and " + MAGENTA(
-    num_programs_to_install) + " programs to install.")
+printer.verbose("Found " + MAGENTA(len(files_to_deploy)) + " files to deploy and " + MAGENTA(
+    len(programs_to_install)) + " programs to install.")
 if len(files_to_deploy) == 0 and len(programs_to_install) == 0:
     printer.verbose("No changes to " + MAGENTA(server_name) + ". Skipping deployment.")
     sys.exit(0)

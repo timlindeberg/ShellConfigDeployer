@@ -4,9 +4,8 @@ import zipfile
 
 import paramiko
 
-import settings
-from colors import *
-from settings import config
+from configuration import settings
+from formatting.colors import *
 
 ZIP_NAME = 'scd_conf.zip'
 
@@ -23,12 +22,12 @@ class ConfigDeployer:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            ssh.connect(server, username=config['username'], password=settings.PASSWORD, port=settings.PORT)
+            ssh.connect(server, username=settings.config['username'], password=settings.PASSWORD, port=settings.PORT)
         except paramiko.ssh_exception.AuthenticationException:
             printer.info(RED("Invalid password"))
-            sys.exit(1)
+            sys.exit(5)
         except Exception as e:
-            printer.info(RED_ + "Could not connect to " + MAGENTA(server))
+            printer.info(RED("Could not connect to ") + MAGENTA(server))
             printer.info(RED(str(e)))
             sys.exit(1)
 
@@ -41,7 +40,7 @@ class ConfigDeployer:
         if len(self.programs) != 0:
             self.printer.info("Installing " + ', '.join([MAGENTA(p) for p in self.programs]))
             programs = ' '.join(self.programs)
-            install_method = config['install_method']
+            install_method = settings.config['install_method']
             commands.append('sudo %s -y -q install %s' % (install_method, programs))
 
         if len(self.files) != 0:
@@ -64,6 +63,8 @@ class ConfigDeployer:
         self.printer.verbose(command)
         session.exec_command(command)
         stdout = session.makefile('rb', -1)
+        self.printer.verbose(MAGENTA("Output"))
+        self.printer.divider(verbose=True)
         while True:
             lines = stdout.read().decode('utf-8', errors='replace')
             if len(lines) == 0:
@@ -72,8 +73,10 @@ class ConfigDeployer:
             lines.replace("\r\r", "\n")
             lines.replace("\r\n", "\n")
             for line in lines.split("\n"):
-                self.printer.verbose(line.rstrip())
+                if len(line) > 0:
+                    self.printer.verbose("    " + line.rstrip())
 
+        self.printer.divider(verbose=True)
         stdout.close()
         session.close()
         self.ssh.close()
@@ -84,7 +87,7 @@ class ConfigDeployer:
 
         sftp = paramiko.SFTPClient.from_transport(self.ssh.get_transport())
         self.printer.verbose("Deploying zip file to server")
-        sftp.put(self.zip, "/home/%s/%s" % (config['username'], ZIP_NAME))
+        sftp.put(self.zip, "/home/%s/%s" % (settings.config['username'], ZIP_NAME))
         sftp.close()
         os.remove(self.zip)
 
@@ -96,6 +99,3 @@ class ConfigDeployer:
             arcname = f if not f.startswith(home) else f[len(home):]
             zip_file.write(f, arcname=arcname)
         zip_file.close()
-
-    def close(self):
-        self.ssh.close()

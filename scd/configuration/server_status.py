@@ -2,15 +2,16 @@ import json
 import os
 import time
 
-import settings
 from constants import *
+
+from configuration import settings
 
 
 class ServerStatus:
     SERVER_STATUS_FILE = SCD_FOLDER + '/server_status'
 
     @staticmethod
-    def default_status():
+    def initial_status():
         return {
             'last_modified': 0,
             'installed_programs': []
@@ -26,12 +27,12 @@ class ServerStatus:
         with open(self.SERVER_STATUS_FILE) as f:
             try:
                 return json.load(f)
-            except:
+            except ValueError:
                 return {}
 
     def __getitem__(self, server):
         if server not in self.status:
-            self.status[server] = self.default_status()
+            self.status[server] = self.initial_status()
         return self.status[server]
 
     def update(self, server):
