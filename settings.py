@@ -23,10 +23,12 @@ class PrintServerStatusAction(argparse.Action):
         self.server_status = server_status
 
     def __call__(self, parser, namespace, values, option_string=None):
-        print(printer.PREFIX + BOLD(WHITE("Server status")))
+        printer = Printer(False)
+        printer.info(BOLD(WHITE("Server status")))
         formatted_json = json.dumps(self.server_status, sort_keys=True, indent=4)
         colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
-        print('\n'.join([printer.PREFIX + line for line in colorful_json.split('\n')]))
+        for line in colorful_json.split('\n'):
+            printer.info(line)
         parser.exit()
 
 
