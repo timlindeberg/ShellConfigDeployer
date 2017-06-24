@@ -12,40 +12,40 @@ WHITE_ = '\033[37m'
 
 
 def BOLD(s):
-    return BOLD_ + s + CLEAR_
+    return BOLD_ + str(s) + CLEAR_
 
 
 def UNDERLINE(s):
-    return UNDERLINE_ + s + CLEAR_
+    return UNDERLINE_ + str(s) + CLEAR_
 
 
 def BLACK(s):
-    return BLACK_ + s + CLEAR_
+    return BLACK_ + str(s) + CLEAR_
 
 
 def RED(s):
-    return RED_ + s + CLEAR_
+    return RED_ + str(s) + CLEAR_
 
 
 def GREEN(s):
-    return GREEN_ + s + CLEAR_
+    return GREEN_ + str(s) + CLEAR_
 
 
 def YELLOW(s):
-    return YELLOW_ + s + CLEAR_
+    return YELLOW_ + str(s) + CLEAR_
 
 
 def BLUE(s):
-    return BLUE_ + s + CLEAR_
+    return BLUE_ + str(s) + CLEAR_
 
 
 def MAGENTA(s):
-    return MAGENTA_ + s + CLEAR_
+    return MAGENTA_ + str(s) + CLEAR_
 
 
 def CYAN(s):
-    return CYAN_ + s + CLEAR_
+    return CYAN_ + str(s) + CLEAR_
 
 
 def WHITE(s):
-    return WHITE_ + s + CLEAR_
+    return WHITE_ + str(s) + CLEAR_

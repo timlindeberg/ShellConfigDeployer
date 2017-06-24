@@ -3,11 +3,11 @@ import os
 import time
 
 import settings
+from constants import *
 
 
 class ServerStatus:
-    HOME = os.path.expanduser('~')
-    SERVER_STATUS_FILE = settings.SCD_FOLDER + '/server_status'
+    SERVER_STATUS_FILE = SCD_FOLDER + '/server_status'
 
     @staticmethod
     def default_status():

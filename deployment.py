@@ -4,7 +4,6 @@ import zipfile
 
 import paramiko
 
-import formatting
 import settings
 from colors import *
 from settings import config
@@ -13,9 +12,10 @@ ZIP_NAME = 'scd_conf.zip'
 
 
 class ConfigDeployer:
-    def __init__(self, server, programs, files):
+    def __init__(self, server, programs, files, printer):
         self.programs = programs
         self.files = files
+        self.printer = printer
 
         self.zip = settings.SCD_FOLDER + '/' + ZIP_NAME
 
@@ -25,11 +25,11 @@ class ConfigDeployer:
         try:
             ssh.connect(server, username=config['username'], password=settings.PASSWORD, port=settings.PORT)
         except paramiko.ssh_exception.AuthenticationException:
-            print(formatting.PREFIX + RED("Invalid password"))
+            printer.info(RED("Invalid password"))
             sys.exit(1)
         except Exception as e:
-            print(formatting.PREFIX + RED_ + "Could not connect to " + MAGENTA(server))
-            print(formatting.PREFIX + RED(str(e)))
+            printer.info(RED_ + "Could not connect to " + MAGENTA(server))
+            printer.info(RED(str(e)))
             sys.exit(1)
 
         self.transport = ssh.get_transport()
@@ -39,16 +39,16 @@ class ConfigDeployer:
         commands = []
 
         if len(self.programs) != 0:
-            print(formatting.PREFIX + "Installing " + ', '.join([MAGENTA(p) for p in self.programs]))
+            self.printer.info("Installing " + ', '.join([MAGENTA(p) for p in self.programs]))
             programs = ' '.join(self.programs)
             install_method = config['install_method']
             commands.append('sudo %s -y -q install %s' % (install_method, programs))
 
         if len(self.files) != 0:
-            print(formatting.PREFIX + "Deploying " + MAGENTA(str(len(self.files))) + " file(s)")
+            self.printer.info("Deploying " + MAGENTA(str(len(self.files))) + " file(s)")
             if len(self.files) < 10:
-                f = [formatting.PREFIX + '     ' + MAGENTA(f.replace(settings.HOME, '~')) for f in self.files]
-                print('\n'.join(f))
+                for f in self.files:
+                    self.printer.info(MAGENTA(f.replace(settings.HOME, '~')))
             self.deploy_zip()
             commands.append('cd ~; unzip -q -o ./%s; rm %s' % (ZIP_NAME, ZIP_NAME))
 
@@ -60,13 +60,19 @@ class ConfigDeployer:
         session.get_pty()
 
         command = ' && '.join(["(" + c + ")" for c in commands])
+        self.printer.verbose("Executing command:")
+        self.printer.verbose(command)
         session.exec_command(command)
-        stdout = session.makefile('r', -1)
+        stdout = session.makefile('rb', -1)
         while True:
-            line = stdout.readline()
-            if len(line) == 0:
+            lines = stdout.read().decode('utf-8', errors='replace')
+            if len(lines) == 0:
                 break
-            print(formatting.PREFIX + line.rstrip())
+
+            lines.replace("\r\r", "\n")
+            lines.replace("\r\n", "\n")
+            for line in lines.split("\n"):
+                self.printer.verbose(line.rstrip())
 
         stdout.close()
         session.close()
@@ -77,11 +83,13 @@ class ConfigDeployer:
         self.create_zip()
 
         sftp = paramiko.SFTPClient.from_transport(self.ssh.get_transport())
+        self.printer.verbose("Deploying zip file to server")
         sftp.put(self.zip, "/home/%s/%s" % (config['username'], ZIP_NAME))
         sftp.close()
         os.remove(self.zip)
 
     def create_zip(self):
+        self.printer.verbose("Creating new zip file " + MAGENTA(self.zip))
         home = os.path.expanduser('~') + '/'
         zip_file = zipfile.ZipFile(self.zip, 'w', zipfile.ZIP_DEFLATED)
         for f in self.files:
