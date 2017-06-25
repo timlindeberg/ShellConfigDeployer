@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+TMP_FILE="tmp.txt"
+
+function cleanup() {
+	rm TMP_FILE > /dev/null 2>&1
+}
+
+set -e
+trap cleanup EXIT
+
+DEPENDENCIES=(sshpass jq)
+for PROGRAM in ${DEPENDENCIES[*]}; do
+    if ! command -v $PROGRAM >/dev/null 2>&1; then
+	    echo "sshop requires $PROGRAM. Install it using a package manager e.g. 'brew install $PROGRAM'."
+        exit 1
+    fi
+done
+
+CONFIG_FILE=~/.scd/config
+if [ ! -f $CONFIG_FILE ]; then
+    echo "Configuration file $CONFIG_FILE is missing."
+    exit 1
+fi
+
+USER_NAME=$(cat $CONFIG_FILE | jq -r .username)
+
+if [ "$USER_NAME" == "null" ]; then
+    echo "No username specified in $CONFIG_FILE."
+    exit 1
+fi
+
+SERVER=$1
+
+if [ -z "$SERVER" ]; then
+	echo "usage: sshop <server>"
+	exit 1
+fi
+
+MAX_TRIES=3
+TRIES=0
+while [ $TRIES -le $MAX_TRIES ]; do
+	read -s -p "Password:" PASSWORD
+	echo
+	echo $PASSWORD > $TMP_FILE
+
+	scd -f $TMP_FILE $SERVER
+	if [ "$?" -eq '5' ]; then
+		let TRIES=TRIES+1
+		continue
+	fi
+
+	sshpass -f $TMP_FILE ssh -p 2222 "$USER_NAME@$SERVER" -t zsh
+	if [ "$?" -eq '5' ]; then
+		let TRIES=TRIES+1
+		continue
+	fi
+	break
+done
+
+cleanup

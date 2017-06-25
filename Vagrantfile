@@ -14,18 +14,6 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/trusty64"
 
-
-  config.vm.define "agent1" do |agent|
-    agent.vm.box = "ubuntu/trusty64"
-    agent.vm.network "private_network", ip: "172.28.128.6"
-  end
-
-  config.vm.define "agent2" do |agent|
-    agent1.vm.box = "ubuntu/trusty64"
-    agent.vm.network "private_network", ip: "172.28.128.7"
-  end
-  
-
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.

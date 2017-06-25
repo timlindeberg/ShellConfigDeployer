@@ -1,12 +1,12 @@
 import argparse
 import json
 
-from constants import *
 from pygments import highlight, lexers, formatters
 
-from configuration.server_status import ServerStatus
-from formatting.colors import *
-from formatting.printer import Printer
+from scd.colors import *
+from scd.constants import *
+from scd.printer import Printer
+from scd.server_status import ServerStatus
 
 
 class PrintServerStatusAction(argparse.Action):

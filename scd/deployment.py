@@ -4,8 +4,8 @@ import zipfile
 
 import paramiko
 
-from configuration import settings
-from formatting.colors import *
+from scd import settings
+from scd.colors import *
 
 ZIP_NAME = 'scd_conf.zip'
 
@@ -24,10 +24,15 @@ class ConfigDeployer:
         try:
             ssh.connect(server, username=settings.config['username'], password=settings.PASSWORD, port=settings.PORT)
         except paramiko.ssh_exception.AuthenticationException:
-            printer.info(RED("Invalid password"))
+            if settings.PASSWORD is None:
+                printer.info(RED("Could not authenticate against " + BOLD(server) +
+                                 RED(". No password was provided. Provide a password using the -p or -f flags.")))
+            else:
+                printer.info(RED("Permission denied."))
+
             sys.exit(5)
         except Exception as e:
-            printer.info(RED("Could not connect to ") + MAGENTA(server))
+            printer.info(RED("Could not connect to ") + BOLD(server))
             printer.info(RED(str(e)))
             sys.exit(1)
 

@@ -1,6 +1,6 @@
 import shutil
 
-from formatting import colors
+from scd import colors
 
 
 class Printer:
@@ -9,11 +9,11 @@ class Printer:
             return
 
         if self.divider_string == '':
-            columns, rows = shutil.get_terminal_size((56, 20))
-            prefix_len = 6
+            columns, rows = shutil.get_terminal_size((55, 20))
+            prefix_len = 5
             width = columns - prefix_len
-            self.divider_string = colors.BOLD(colors.CYAN(width * "─"))
-        self.info(self.divider_string)
+            self.divider_string = width * "─"
+        print(colors.BOLD(colors.CYAN("SCD ├" + self.divider_string)))
 
     def __init__(self, verbose_active):
         self.verbose_active = verbose_active

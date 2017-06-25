@@ -2,9 +2,8 @@ import json
 import os
 import time
 
-from constants import *
-
-from configuration import settings
+from scd import settings
+from scd.constants import *
 
 
 class ServerStatus:

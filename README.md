@@ -1,8 +1,9 @@
 # Shell Configuration Deployer (SCD)
-A python program to deploy shell configuration to remote servers. 
+A Python program to deploy shell configuration to remote servers. 
 The program can be used to automatically deploy your shell configuration to
 remote hosts before sshing in to them. This way you can always use your
-desired shell configuration no matter where you are.
+desired shell configuration no matter where you are. See sshops.sh for an 
+example of how it can be used.
 
 SCD keeps track of which servers have correct shell configuration by keeping
 track of the time of deployment as well as a list of programs that have been
@@ -34,14 +35,23 @@ be deployed. Example:
         ".gitconfig"
     ],
     "programs": [
+        "unzip",
         "zsh",
         "tree"
     ]
 }
 ```
+
 This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
 .gitconfig placed in ~ on to the remote server and install zsh and tree.
 It will ignore .git folders and .DS_Store files and sign on to the server using
 the user 'vagrant' and install programs using apt-get. Server and port can be
 specified in the configuration but is normally given as a command line
 argument.
+
+##### NOTE:
+
+Most Unix systems come with unzip already installed but not all. unzip is needed
+to deploy the configuration files. By adding unzip to the programs list you can 
+make sure that unzip is installed before deploying the files.
+
