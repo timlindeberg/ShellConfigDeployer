@@ -2,7 +2,6 @@ import json
 import sys
 
 from scd.argparser import parser
-from scd.colors import *
 from scd.constants import *
 from scd.printer import Printer
 from scd.server_status import ServerStatus
@@ -27,54 +26,82 @@ DEFAULT_CONFIG = """
 }
 """.strip()
 
-printer = Printer(False)
+_printer = Printer(False)
+
+
+def error(msg, *items):
+    _printer.error(msg, *items)
+    sys.exit(1)
+
+
+_CONFIG = SCD_CONFIG.replace(HOME, '~')
 
 if not os.path.isfile(SCD_CONFIG):
-    printer.info(RED("Missing configuration file " + BOLD(SCD_CONFIG.replace(HOME, '~'))))
-    printer.info(RED("Creating default configuration. Please edit " + BOLD(SCD_CONFIG.replace(HOME, '~')) +
-                     RED(" with your settings.")))
+    _printer.error("Missing configuration file %s.", _CONFIG)
+    _printer.error("Creating default configuration. Please edit %s with your settings", _CONFIG)
     if not os.path.exists(SCD_FOLDER):
         os.makedirs(SCD_FOLDER)
 
     with open(SCD_CONFIG, 'w') as f:
         f.write(DEFAULT_CONFIG)
-    sys.exit(1)
+        sys.exit(1)
 
 with open(SCD_CONFIG) as f:
     try:
-        config = json.load(f)
+        _config = json.load(f)
     except json.decoder.JSONDecodeError as e:
-        printer.info(RED("Failed to parse configuration file " +
-                         BOLD(SCD_CONFIG.replace(HOME, '~')) + RED(":")))
-        printer.info("    " + RED(e))
+        _printer.error("Failed to parse configuration file %s:", _CONFIG)
+        _printer.error("    " + str(e))
         sys.exit(1)
 
-args = parser.parse_args()
-SERVER = args.server or config.get('server')
-PORT = args.port or config.get('port') or 22
-USER = args.user or config.get('user')
-VERBOSE = args.verbose
-FORCE = args.force
+_args = parser.parse_args()
 
-SERVER_STATUS = ServerStatus()
+HOST = _args.server or _config.get('host') or error(
+    "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
+    _CONFIG, '"host"'
+)
 
-printer = Printer(VERBOSE)
-password_file = args.password_file
+USER = _args.user or _config.get('user') or error(
+    "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
+    _CONFIG, '"user"', '--user', '-u'
+)
 
-if not SERVER:
-    printer.info(RED("No server specified."))
-    sys.exit(1)
+SHELL = _config.get('shell') or error(
+    "Shell is not specified. Specify which shell to use in %s under the attribute %s.",
+    _CONFIG, '"shell"'
+)
 
-if not USER:
-    printer.info(RED("No user specified."))
-    sys.exit(1)
+FILES = _config.get('files') or error(
+    "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
+    _CONFIG, '"files"'
+)
 
-if args.password:
-    PASSWORD = args.password
-elif password_file:
-    if not os.path.isfile(password_file):
-        printer.info(RED_ + "The given password file " + BOLD(password_file) + RED(" does not exist."))
-        sys.exit(1)
-    PASSWORD = open(password_file).read().strip()
+PROGRAMS = _config.get('programs') or error(
+    "Which programs to install are not specified. Specify which programs to install in %s under the attribute %s.",
+    _CONFIG, '"programs"'
+)
+
+INSTALL_METHOD = _config.get('install_method') or error(
+    "The install method is not specified. Specify the installation method in %s under the attribute %s. " +
+    "Valid options are %s and %s.",
+    _CONFIG, '"install_method"', 'yum', 'apt-get'
+)
+
+IGNORED_FILES = _config.get('ignored_files') or []
+PORT = _args.port or _config.get('port') or 22
+VERBOSE = _args.verbose
+FORCE = _args.force
+
+HOST_STATUS = ServerStatus()
+
+_password_file = _args.password_file
+
+if _args.password:
+    PASSWORD = _args.password
+elif _password_file:
+    if not os.path.isfile(_password_file):
+        error("The given password file %s does not exist.", _password_file)
+
+    PASSWORD = open(_password_file).read().strip()
 else:
     PASSWORD = None

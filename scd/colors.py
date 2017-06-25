@@ -1,51 +1,55 @@
-CLEAR_ = '\033[0m'
-BOLD_ = '\033[1m'
-UNDERLINE_ = '\033[4m'
-BLACK_ = '\033[30m'
-RED_ = '\033[31m'
-GREEN_ = '\033[32m'
-YELLOW_ = '\033[33m'
-BLUE_ = '\033[34m'
-MAGENTA_ = '\033[35m'
-CYAN_ = '\033[36m'
-WHITE_ = '\033[37m'
+CLEAR = '\033[0m'
+BOLD = '\033[1m'
+UNDERLINE = '\033[4m'
+BLACK = '\033[30m'
+RED = '\033[31m'
+GREEN = '\033[32m'
+YELLOW = '\033[33m'
+BLUE = '\033[34m'
+MAGENTA = '\033[35m'
+CYAN = '\033[36m'
+WHITE = '\033[37m'
 
 
-def BOLD(s):
-    return BOLD_ + str(s) + CLEAR_
+def bold(s):
+    return BOLD + str(s) + CLEAR
 
 
-def UNDERLINE(s):
-    return UNDERLINE_ + str(s) + CLEAR_
+def underline(s):
+    return UNDERLINE + str(s) + CLEAR
 
 
-def BLACK(s):
-    return BLACK_ + str(s) + CLEAR_
+def black(s):
+    return BLACK + str(s) + CLEAR
 
 
-def RED(s):
-    return RED_ + str(s) + CLEAR_
+def red(s):
+    return RED + str(s) + CLEAR
 
 
-def GREEN(s):
-    return GREEN_ + str(s) + CLEAR_
+def green(s):
+    return GREEN + str(s) + CLEAR
 
 
-def YELLOW(s):
-    return YELLOW_ + str(s) + CLEAR_
+def yellow(s):
+    return YELLOW + str(s) + CLEAR
 
 
-def BLUE(s):
-    return BLUE_ + str(s) + CLEAR_
+def blue(s):
+    return BLUE + str(s) + CLEAR
 
 
-def MAGENTA(s):
-    return MAGENTA_ + str(s) + CLEAR_
+def magenta(s):
+    return MAGENTA + str(s) + CLEAR
 
 
-def CYAN(s):
-    return CYAN_ + str(s) + CLEAR_
+def cyan(s):
+    return CYAN + str(s) + CLEAR
 
 
-def WHITE(s):
-    return WHITE_ + str(s) + CLEAR_
+def white(s):
+    return WHITE + str(s) + CLEAR
+
+
+def no_color(s):
+    return str(s)

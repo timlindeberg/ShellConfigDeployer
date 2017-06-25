@@ -20,11 +20,11 @@ what programs should be installed on the remote server and what files should
 be deployed. Example:
 ```json
 {
-    "username": "vagrant",
+    "user": "vagrant",
     "install_method": "apt-get",
-    "server": "127.0.0.1",
+    "host": "127.0.0.1",
     "port": 2222,
-    "ignore_files": [
+    "ignored_files": [
         ".gitignore",
         ".git",
         ".DS_Store"
@@ -43,7 +43,7 @@ be deployed. Example:
 ```
 
 This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
-.gitconfig placed in ~ on to the remote server and install zsh and tree.
+.gitconfig placed in ~ on to the remote host and install zsh and tree.
 It will ignore .git folders and .DS_Store files and sign on to the server using
 the user 'vagrant' and install programs using apt-get. Server and port can be
 specified in the configuration but is normally given as a command line

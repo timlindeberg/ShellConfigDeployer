@@ -3,7 +3,6 @@ import json
 
 from pygments import highlight, lexers, formatters
 
-from scd.colors import *
 from scd.constants import *
 from scd.printer import Printer
 from scd.server_status import ServerStatus
@@ -20,7 +19,7 @@ class PrintServerStatusAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         printer = Printer(False)
-        printer.info(BOLD(WHITE("Server status")))
+        printer.info("Server status")
 
         server_status = ServerStatus().status
         formatted_json = json.dumps(server_status, sort_keys=True, indent=4)

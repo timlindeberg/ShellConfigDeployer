@@ -38,7 +38,7 @@ class ServerStatus:
         status = self.status[server] if server in self.status else {}
 
         status['last_modified'] = time.time()
-        status['installed_programs'] = settings.config['programs']
+        status['installed_programs'] = settings.PROGRAMS + [settings.SHELL]
         self.status[server] = status
 
     def save(self):

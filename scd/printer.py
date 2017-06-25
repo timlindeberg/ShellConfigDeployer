@@ -4,16 +4,34 @@ from scd import colors
 class Printer:
     def __init__(self, verbose_active):
         self.verbose_active = verbose_active
-        self.prefix = colors.BOLD(colors.CYAN("SCD │ "))
+        self.prefix = colors.bold(colors.cyan("SCD │ "))
         self.indent = "    "
 
-    def verbose(self, output):
-        if self.verbose_active:
-            self.info(output)
+    def info(self, output, *items, verbose=False):
+        if not self.verbose_active and verbose:
+            return
 
-    def info(self, output):
+        self._print(output, items, colors.no_color, colors.magenta)
+
+    def success(self, output, *items):
+        self._print(output, items, colors.green, lambda s: colors.green(colors.bold(s)))
+
+    def error(self, output, *items):
+        self._print(output, items, colors.red, lambda s: colors.red(colors.bold(s)))
+
+    def _print(self, output, items, str_color, item_color):
         if type(output) is str:
-            print(self.prefix + output)
+            self._print_string(output, items, str_color, item_color)
         elif type(output) is list:
             for line in output:
-                self.info(self.indent + line)
+                print(self.prefix + self.indent + str_color(line))
+
+    def _print_string(self, output, items, str_color, item_color):
+        print(self.prefix, end='')
+        i = 0
+        for s in output.split("%s"):
+            print(str_color(s), end='')
+            if i < len(items):
+                print(item_color(items[i]), end='')
+                i += 1
+        print()
