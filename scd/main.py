@@ -56,9 +56,11 @@ def main():
     config_deployer = ConfigDeployer(server_name, programs_to_install, files_to_deploy, printer)
     success = config_deployer.deploy()
     if success:
-        printer.info(GREEN("Configuration successfully deployed."))
+        printer.info(GREEN(BOLD("Configuration successfully deployed.")))
         SERVER_STATUS.update(server_name)
         SERVER_STATUS.save()
+    else:
+        printer.info(RED(BOLD("Failed to deploy configuration.")))
 
 
 if __name__ == '__main__':

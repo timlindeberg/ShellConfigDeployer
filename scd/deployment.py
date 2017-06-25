@@ -40,57 +40,67 @@ class ConfigDeployer:
         self.ssh = ssh
 
     def deploy(self):
-        commands = []
+        commands = ['set -e', 'set -x']
 
         if len(self.programs) != 0:
             self.printer.info("Installing " + ', '.join([MAGENTA(p) for p in self.programs]))
             programs = ' '.join(self.programs)
             install_method = settings.config['install_method']
-            commands.append('sudo %s -y -q install %s' % (install_method, programs))
+            commands += ['sudo %s -y -q install %s' % (install_method, programs)]
 
         if len(self.files) != 0:
             self.printer.info("Deploying " + MAGENTA(str(len(self.files))) + " file(s)")
             if len(self.files) < 10:
-                for f in self.files:
-                    self.printer.info(MAGENTA(f.replace(settings.HOME, '~')))
+                self.printer.info([MAGENTA(f.replace(settings.HOME, '~')) for f in self.files])
             self.deploy_zip()
-            commands.append('cd ~; unzip -q -o ./%s; rm %s' % (ZIP_NAME, ZIP_NAME))
+            commands += ['cd ~', 'unzip -q -o ./%s' % ZIP_NAME, 'rm %s' % ZIP_NAME]
 
         return self.execute_commands(commands)
 
     def execute_commands(self, commands):
         session = self.transport.open_session()
-        session.set_combine_stderr(True)
         session.get_pty()
 
-        command = ' && '.join(["(" + c + ")" for c in commands])
-        self.printer.verbose("Executing command:")
-        self.printer.verbose(command)
+        command = '\n'.join(commands)
+
+        self.printer.verbose(MAGENTA("Executing commands on server:"))
+        self.printer.verbose(commands)
+
         session.exec_command(command)
         stdout = session.makefile('rb', -1)
-        self.printer.verbose(MAGENTA("Output"))
-        self.printer.divider(verbose=True)
+        lines = self.read_output(stdout)
+
+        status = session.recv_exit_status()
+        session.close()
+        self.ssh.close()
+
+        self.print_output(status, lines)
+        return status == 0
+
+    def print_output(self, status, lines):
+        if status != 0:
+            self.printer.info(RED("Remote commands failed with status " + BOLD(status) + RED(":")))
+            self.printer.info([MAGENTA(l) if l.startswith('+') else RED(l) for l in lines])
+        elif settings.VERBOSE:
+            self.printer.verbose(MAGENTA("Output:"))
+            self.printer.verbose([MAGENTA(l) if l.startswith('+') else l for l in lines])
+
+    @staticmethod
+    def read_output(source):
+        output = ''
         while True:
-            lines = stdout.read().decode('utf-8', errors='replace')
+            lines = source.read().decode('utf-8', errors='replace')
             if len(lines) == 0:
                 break
 
-            lines.replace("\r\r", "\n")
-            lines.replace("\r\n", "\n")
-            for line in lines.split("\n"):
-                if len(line) > 0:
-                    self.printer.verbose("    " + line.rstrip())
-
-        self.printer.divider(verbose=True)
-        stdout.close()
-        session.close()
-        self.ssh.close()
-        return session.recv_exit_status() == 0
+            output += lines.replace("\r\r", "\n").replace("\r\n", "\n")
+        source.close()
+        return [line.strip() for line in output.split("\n") if len(line) > 0]
 
     def deploy_zip(self):
         self.create_zip()
 
-        sftp = paramiko.SFTPClient.from_transport(self.ssh.get_transport())
+        sftp = paramiko.SFTPClient.from_transport(self.transport)
         self.printer.verbose("Deploying zip file to server")
         sftp.put(self.zip, "/home/%s/%s" % (settings.config['username'], ZIP_NAME))
         sftp.close()
