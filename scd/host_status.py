@@ -6,7 +6,7 @@ from scd import settings
 from scd.constants import *
 
 
-class ServerStatus:
+class HostStatus:
     SERVER_STATUS_FILE = SCD_FOLDER + '/server_status'
 
     @staticmethod
@@ -29,17 +29,23 @@ class ServerStatus:
             except ValueError:
                 return {}
 
-    def __getitem__(self, server):
-        if server not in self.status:
-            self.status[server] = self.initial_status()
-        return self.status[server]
+    def __getitem__(self, host):
+        if host not in self.status:
+            self.status[host] = self.initial_status()
+        return self.status[host]
 
-    def update(self, server):
-        status = self.status[server] if server in self.status else {}
+    def update(self, host):
+        status = self.status[host] if host in self.status else {}
 
         status['last_modified'] = time.time()
         status['installed_programs'] = settings.PROGRAMS + [settings.SHELL]
-        self.status[server] = status
+        self.status[host] = status
+
+    def clear(self, host):
+        if self.status.get(host):
+            del self.status[host]
+            return True
+        return False
 
     def save(self):
         with open(self.SERVER_STATUS_FILE, 'w') as f:

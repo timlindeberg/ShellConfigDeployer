@@ -1,10 +1,12 @@
 import json
 import sys
 
+from pygments import highlight, lexers, formatters
+
 from scd.argparser import parser
 from scd.constants import *
+from scd.host_status import HostStatus
 from scd.printer import Printer
-from scd.server_status import ServerStatus
 
 DEFAULT_CONFIG = """
 {
@@ -56,7 +58,7 @@ with open(SCD_CONFIG) as f:
 
 _args = parser.parse_args()
 
-HOST = _args.server or _config.get('host') or error(
+HOST = _args.host or _config.get('host') or error(
     "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
     _CONFIG, '"host"'
 )
@@ -92,7 +94,22 @@ PORT = _args.port or _config.get('port') or 22
 VERBOSE = _args.verbose
 FORCE = _args.force
 
-HOST_STATUS = ServerStatus()
+HOST_STATUS = HostStatus()
+
+if _args.clear_status:
+    if HOST_STATUS.clear(_args.clear_status):
+        _printer.info("Clearing status of host %s.", _args.clear_status)
+        HOST_STATUS.save()
+    else:
+        _printer.error("Host status file does not contain host %s.", _args.clear_status)
+    sys.exit(0)
+
+if _args.host_status:
+    formatted_json = json.dumps(HOST_STATUS.status, sort_keys=True, indent=4)
+    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
+    for line in colorful_json.split('\n'):
+        _printer.info(line)
+    sys.exit(0)
 
 _password_file = _args.password_file
 
