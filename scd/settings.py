@@ -52,6 +52,7 @@ with open(SCD_CONFIG) as f:
 args = parser.parse_args()
 SERVER = args.server or config.get('server')
 PORT = args.port or config.get('port') or 22
+USER = args.user or config.get('user')
 VERBOSE = args.verbose
 FORCE = args.force
 
@@ -62,6 +63,10 @@ password_file = args.password_file
 
 if not SERVER:
     printer.info(RED("No server specified."))
+    sys.exit(1)
+
+if not USER:
+    printer.info(RED("No user specified."))
     sys.exit(1)
 
 if args.password:
