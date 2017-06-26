@@ -3,7 +3,7 @@ from scd import constants
 
 
 class Printer:
-    def __init__(self, verbose_active):
+    def __init__(self, verbose_active=False):
         self.verbose_active = verbose_active
         self.prefix = colors.bold(colors.cyan("SCD │ "))
         self.indent = "    "

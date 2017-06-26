@@ -5,43 +5,24 @@ import zipfile
 
 import paramiko
 
-from scd import settings
 from scd.colors import *
-
-ZIP_NAME = "scd_conf.zip"
+from scd.constants import *
 
 
 class ConfigDeployer:
-    def __init__(self, host, programs, files, change_shell, printer):
+    def __init__(self, settings, programs, files, change_shell, printer):
         self.programs = programs
         self.files = files
         self.change_shell = change_shell
         self.printer = printer
 
-        self.zip = settings.SCD_FOLDER + "/" + ZIP_NAME
+        self.user = settings.user
+        self.password = settings.password
+        self.port = settings.port
+        self.shell = settings.shell
 
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        try:
-            ssh.connect(host, username=settings.USER, password=settings.PASSWORD, port=settings.PORT)
-        except paramiko.ssh_exception.AuthenticationException:
-            if settings.PASSWORD is None:
-                printer.error(
-                    "Could not authenticate against %s. No password was provided. " +
-                    "Provide a password using the %s or %s flags.",
-                    host, "-p", "-f"
-                )
-            else:
-                printer.error("Permission denied.")
-            sys.exit(5)
-        except Exception as e:
-            printer.error("Could not connect to %s", host)
-            printer.error(str(e))
-            sys.exit(1)
-
-        self.transport = ssh.get_transport()
-        self.ssh = ssh
+        self.ssh = self._connect(settings.host)
+        self.transport = self.ssh.get_transport()
 
     def deploy(self):
         commands = ["set -e", "set -x"]
@@ -56,6 +37,28 @@ class ConfigDeployer:
             commands += self._deploy_files_commands()
 
         return self._execute_script(commands)
+
+    def _connect(self, host):
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            ssh.connect(host, username=self.user, password=self.password, port=self.port)
+        except paramiko.ssh_exception.AuthenticationException:
+            if self.password is None:
+                self.printer.error(
+                    "Could not authenticate against %s. No password was provided. " +
+                    "Provide a password using the %s or %s flags.", host, "-p", "-f"
+                )
+            else:
+                self.printer.error("Permission denied.")
+            sys.exit(5)
+        except Exception as e:
+            self.printer.error("Could not connect to %s", host)
+            self.printer.error(str(e))
+            sys.exit(1)
+
+        return ssh
 
     def _install_programs_commands(self):
         self.printer.info("Installing " + ", ".join([magenta(p) for p in self.programs]))
@@ -86,12 +89,12 @@ class ConfigDeployer:
             """
 
         commands = textwrap.dedent(select_package_manager).strip().split("\n")
-        commands += ['sudo $PACKAGE_MANAGER $ANSWER_YES install ' + " ".join(self.programs)]
+        commands += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(self.programs)]
         return commands
 
     def _change_shell_commands(self):
-        self.printer.info("Changing default shell to %s", settings.SHELL)
-        return ["sudo chsh -s $(which %s) %s" % (settings.SHELL, settings.USER)]
+        self.printer.info("Changing default shell to %s", self.shell)
+        return ["sudo usermod -s $(which %s) %s" % (self.shell, self.user)]
 
     def _deploy_files_commands(self):
         self.printer.info("Deploying %s file(s)", len(self.files))
@@ -104,12 +107,10 @@ class ConfigDeployer:
         session = self.transport.open_session()
         session.get_pty()
 
-        script = "\n".join(commands)
-
         self.printer.info("Executing script on server:", verbose=True)
         self.printer.info(commands, verbose=True)
 
-        session.exec_command(script)
+        session.exec_command("\n".join(commands))
         stdout = session.makefile("rb", -1)
         lines = self._read_output(stdout)
 
@@ -145,14 +146,14 @@ class ConfigDeployer:
 
         sftp = paramiko.SFTPClient.from_transport(self.transport)
         self.printer.info("Deploying zip file to server", verbose=True)
-        sftp.put(self.zip, "/home/%s/%s" % (settings.USER, ZIP_NAME))
+        sftp.put(ZIP_PATH, "/home/%s/%s" % (self.user, ZIP_NAME))
         sftp.close()
-        os.remove(self.zip)
+        os.remove(ZIP_PATH)
 
     def _create_zip(self):
-        self.printer.info("Creating new zip file %s.", self.zip, verbose=True)
+        self.printer.info("Creating new zip file %s.", ZIP_PATH, verbose=True)
         home = os.path.expanduser("~") + "/"
-        zip_file = zipfile.ZipFile(self.zip, "w", zipfile.ZIP_DEFLATED)
+        zip_file = zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED)
         for f in self.files:
             arcname = f if not f.startswith(home) else f[len(home):]
             try:

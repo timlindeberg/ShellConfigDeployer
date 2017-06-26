@@ -1,6 +1,6 @@
 import json
 import sys
-import traceback
+import textwrap
 
 from pygments import highlight, lexers, formatters
 
@@ -9,124 +9,138 @@ from scd.constants import *
 from scd.host_status import HostStatus
 from scd.printer import Printer
 
-DEFAULT_CONFIG = """
-{
-    "user": "",
-    "ignored_files": [
-        ".git",
-        ".DS_Store"
-    ],
-    "files": [
-        ".oh-my-zsh",
-        ".zshrc"
-    ],
-    "programs": [
-        "unzip",
-        "tree"
-    ]
-}
-""".strip()
 
-_printer = Printer(False)
+class Settings:
+    DEFAULT_CONFIG = textwrap.dedent("""
+        {
+            "user": "",
+            "ignored_files": [
+                ".git",
+                ".DS_Store"
+            ],
+            "files": [
+                ".oh-my-zsh",
+                ".zshrc"
+            ],
+            "programs": [
+                "unzip",
+                "tree"
+            ]
+        }
+        """).strip()
 
+    def __init__(self):
+        self.printer = Printer(False)
 
-def _error(msg, *items):
-    _printer.error(msg, *items)
-    sys.exit(1)
+        self._check_config_file()
+        config = self._parse_config_file()
+        self.host_status = HostStatus()
 
+        args = parser.parse_args()
 
-def _print_colored_json(obj):
-    formatted_json = json.dumps(obj, sort_keys=True, indent=4)
-    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
-    for line in colorful_json.split("\n"):
-        _printer.info(line)
+        if args.clear_status:
+            self._clear_host_status(args.clear_status)
 
+        if args.print_host_status:
+            self._print_host_status()
 
-def _color_exceptions(type, value, tb):
-    traceback_text = "".join(traceback.format_exception(type, value, tb))
-    lexer = lexers.get_lexer_by_name("pytb", stripall=True)
-    formatter = formatters.TerminalFormatter()
-    sys.stderr.write(highlight(traceback_text, lexer, formatter))
+        if args.print_config:
+            self._print_config(config)
 
+        self._parse_settings(args, config)
 
-sys.excepthook = _color_exceptions
+    def _check_config_file(self):
+        if os.path.isfile(SCD_CONFIG):
+            return
 
-if not os.path.isfile(SCD_CONFIG):
-    _printer.error("Missing configuration file %s.", SCD_CONFIG)
-    _printer.error("Creating default configuration. Please edit %s with your settings", SCD_CONFIG)
-    if not os.path.exists(SCD_FOLDER):
-        os.makedirs(SCD_FOLDER)
+        self.printer.error("Missing configuration file %s.", SCD_CONFIG)
+        self.printer.error("Creating default configuration. Please edit %s with your settings", SCD_CONFIG)
+        if not os.path.exists(SCD_FOLDER):
+            os.makedirs(SCD_FOLDER)
 
-    with open(SCD_CONFIG, "w") as f:
-        f.write(DEFAULT_CONFIG)
-        sys.exit(1)
+        with open(SCD_CONFIG, "w") as f:
+            f.write(self.DEFAULT_CONFIG)
+            sys.exit(1)
 
-with open(SCD_CONFIG) as f:
-    try:
-        _config = json.load(f)
-    except json.decoder.JSONDecodeError as e:
-        _printer.error("Failed to parse configuration file %s:", SCD_CONFIG)
-        _printer.error("    " + str(e))
-        sys.exit(1)
+    def _parse_config_file(self):
+        with open(SCD_CONFIG) as f:
+            try:
+                return json.load(f)
+            except json.decoder.JSONDecodeError as e:
+                self.printer.error("Failed to parse configuration file %s:", SCD_CONFIG)
+                self.printer.error("    " + str(e))
+                sys.exit(1)
 
-_args = parser.parse_args()
-HOST_STATUS = HostStatus()
+    def _clear_host_status(self, host):
+        if self.host_status.clear(host):
+            self.host_status.save()
+            self.printer.info("Cleared status of host %s.", host)
+            sys.exit(0)
+        else:
+            self.printer.error("Host status file does not contain host %s.", host)
+            sys.exit(1)
 
-if _args.clear_status:
-    if HOST_STATUS.clear(_args.clear_status):
-        HOST_STATUS.save()
-        _printer.info("Cleared status of host %s.", _args.clear_status)
+    def _print_host_status(self):
+        self.printer.success("Host Status")
+        self.printer.info("")
+        self._print_colored_json(self.host_status.status)
         sys.exit(0)
-    else:
-        _printer.error("Host status file does not contain host %s.", _args.clear_status)
+
+    def _print_config(self, config):
+        self.printer.success("Config")
+        self.printer.info("")
+        self._print_colored_json(config)
+        sys.exit(0)
+
+    def _parse_settings(self, args, config):
+        self.host = args.host or config.get("host") or self._error(
+            "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
+            SCD_CONFIG, '"host"'
+        )
+
+        self.user = args.user or config.get("user") or self._error(
+            "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
+            SCD_CONFIG, '"user"', "--user", "-u"
+        )
+
+        self.files = config.get("files") or self._error(
+            "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
+            SCD_CONFIG, '"files"'
+        )
+
+        self.programs = config.get("programs") or self._error(
+            "Which programs to install are not specified. " +
+            "Specify which programs to install in %s under the attribute %s.",
+            SCD_CONFIG, '"programs"'
+        )
+
+        self.shell = config.get("shell")
+        self.ignored_files = config.get("ignored_files") or []
+        self.port = args.port or config.get("port") or 22
+        self.verbose = args.verbose
+        self.force = args.force
+
+        self.password = self._get_password(args)
+
+    def _get_password(self, args):
+        password_file = args.password_file
+        if password_file:
+            if not os.path.isfile(password_file):
+                self._error("The given password file %s does not exist.", password_file)
+
+            return open(password_file).read().strip()
+
+        if args.password:
+            return args.password
+
+        return None
+
+    def _error(self, msg, *items):
+        self.printer.error(msg, *items)
         sys.exit(1)
 
-if _args.print_host_status:
-    _printer.success("Host Status")
-    _printer.info("")
-    _print_colored_json(HOST_STATUS.status)
-    sys.exit(0)
-
-if _args.print_config:
-    _printer.success("Config")
-    _printer.info("")
-    _print_colored_json(_config)
-    sys.exit(0)
-
-HOST = _args.host or _config.get("host") or _error(
-    "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
-    SCD_CONFIG, '"host"'
-)
-
-USER = _args.user or _config.get("user") or _error(
-    "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
-    SCD_CONFIG, '"user"', "--user", "-u"
-)
-
-FILES = _config.get("files") or _error(
-    "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
-    SCD_CONFIG, '"files"'
-)
-
-PROGRAMS = _config.get("programs") or _error(
-    "Which programs to install are not specified. Specify which programs to install in %s under the attribute %s.",
-    SCD_CONFIG, '"programs"'
-)
-
-SHELL = _config.get("shell")
-IGNORED_FILES = _config.get("ignored_files") or []
-PORT = _args.port or _config.get("port") or 22
-VERBOSE = _args.verbose
-FORCE = _args.force
-
-_password_file = _args.password_file
-
-if _args.password:
-    PASSWORD = _args.password
-elif _password_file:
-    if not os.path.isfile(_password_file):
-        _error("The given password file %s does not exist.", _password_file)
-
-    PASSWORD = open(_password_file).read().strip()
-else:
-    PASSWORD = None
+    def _print_colored_json(self, obj):
+        formatted_json = json.dumps(obj, sort_keys=True, indent=4)
+        colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
+        for line in colorful_json.split("\n"):
+            self.printer.info(line)
