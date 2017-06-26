@@ -1,5 +1,6 @@
 import os
 import sys
+import textwrap
 import zipfile
 
 import paramiko
@@ -46,33 +47,63 @@ class ConfigDeployer:
         commands = ['set -e', 'set -x']
 
         if len(self.programs) != 0:
-            self.printer.info('Installing ' + ', '.join([magenta(p) for p in self.programs]))
-            programs = ' '.join(self.programs)
-            commands += ['sudo %s -y -q install %s' % (settings.PACKAGE_MANAGER, programs)]
+            commands += self._install_programs_commands()
 
         if self.change_shell:
-            self.printer.info('Changing default shell to %s', settings.SHELL)
-            commands += ['sudo chsh -s $(which %s) %s' % (settings.SHELL, settings.USER)]
+            commands += self._change_shell_commands()
 
         if len(self.files) != 0:
-            self.printer.info('Deploying %s file(s)', len(self.files))
-            if len(self.files) < 10:
-                self.printer.info([magenta(f) for f in self.files])
-            self._deploy_zip()
-            commands += ['cd ~', 'unzip -q -o ./%s' % ZIP_NAME, 'rm %s' % ZIP_NAME]
+            commands += self._deploy_files_commands()
 
-        return self._execute_commands(commands)
+        return self._execute_script(commands)
 
-    def _execute_commands(self, commands):
+    def _install_programs_commands(self):
+        self.printer.info('Installing ' + ', '.join([magenta(p) for p in self.programs]))
+        select_package_manager = textwrap.dedent("""
+                if [ -f /etc/redhat-release ]; then
+                    PACKAGE_MANAGER="yum"
+                elif [ -f /etc/arch-release ]; then
+                    PACKAGE_MANAGER="pacman"
+                elif [ -f /etc/gentoo-release ]; then
+                    PACKAGE_MANAGER="emerge"
+                elif [ -f /etc/SuSE-release ]; then
+                    PACKAGE_MANAGER="zypper"
+                elif [ -f /etc/debian_version ]; then
+                    PACKAGE_MANAGER="apt-get"
+                elif [ "$(uname)" == "Darwin" ]; then
+                    PACKAGE_MANAGER="brew"
+                else
+                    echo "Unsupported distribution."
+                    exit 1
+                fi
+            """).strip().split("\n")
+
+        programs = ' '.join(self.programs)
+        commands = select_package_manager
+        commands += ['sudo sh -c "yes | $PACKAGE_MANAGER install %s"' % programs]
+        return commands
+
+    def _change_shell_commands(self):
+        self.printer.info('Changing default shell to %s', settings.SHELL)
+        return ['sudo chsh -s $(which %s) %s' % (settings.SHELL, settings.USER)]
+
+    def _deploy_files_commands(self):
+        self.printer.info('Deploying %s file(s)', len(self.files))
+        if len(self.files) < 10:
+            self.printer.info([magenta(f) for f in self.files])
+        self._deploy_zip()
+        return ['cd ~', 'unzip -q -o ./%s' % ZIP_NAME, 'rm %s' % ZIP_NAME]
+
+    def _execute_script(self, commands):
         session = self.transport.open_session()
         session.get_pty()
 
-        command = '\n'.join(commands)
+        script = '\n'.join(commands)
 
-        self.printer.info('Executing commands on server:', verbose=True)
+        self.printer.info('Executing script on server:', verbose=True)
         self.printer.info(commands, verbose=True)
 
-        session.exec_command(command)
+        session.exec_command(script)
         stdout = session.makefile('rb', -1)
         lines = self._read_output(stdout)
 

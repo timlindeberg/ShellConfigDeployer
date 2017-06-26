@@ -21,12 +21,8 @@ be deployed. Example:
 ```json
 {
     "user": "vagrant",
-    "package_manager": "apt-get",
-    "host": "127.0.0.1",
-    "port": 2222,
     "shell": "zsh",
     "ignored_files": [
-        ".gitignore",
         ".git",
         ".DS_Store"
     ],
@@ -42,19 +38,17 @@ be deployed. Example:
 }
 ```
 
-This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
-.gitconfig placed in ~ on to the remote host and install zsh and tree.
-It will ignore .git folders and .DS_Store files and sign on to the server using
-the user 'vagrant' and install programs using apt-get.
-It will also install zsh and change the default login shell for the user to 
-zsh. Server and port can be specified in the configuration but is normally 
-given as a command line argument. 
+This configuration will deploy the folder `.oh-my-zsh` and the files `.zshrc` 
+and `.gitconfig` placed in ~ on to the remote host and install `unzip` and 
+`tree`. It will ignore `.git` folders and `.DS_Store` files and sign on to the
+server using the user `vagrant` and install programs using `apt-get`.
+It will also install `zsh` and use it as the default login shell for the user.
 
 ##### NOTE:
 
-Most Unix systems come with unzip already installed but not all. unzip is 
-needed to deploy the configuration files. By adding unzip to the programs list
-you can make sure that unzip is installed before deploying the files.
+Not all Unix systems come with `unzip` already installed. `unzip` is needed by SCD
+to deploy the configuration files. By adding `unzip` to the programs list you can
+make sure that it is installed before deploying the files.
 
 ## Configuration options
 
@@ -82,7 +76,7 @@ for files to deploy.
 
 #### "user"
 Selects which user to authenticate against the host with. Can also be specified
-with the flag --user (-u) if you use different user names for different hosts.
+with the flag `--user` (`-u) if you use different user names for different hosts.
 The user needs sudo rights in order to install programs.
 
 #### "host"
@@ -92,14 +86,4 @@ specify it in the config file.
 
 #### "port"
 Selects which port to connect through. Can also be specified using the flags 
---port (-P). Defaults to 22.
-
-
-#### "package_manager"
-Specifies which package_manager to use on the remote host. This property is
-mandatory.
-
-
-
-
-
+`--port` (`-P). Defaults to 22.

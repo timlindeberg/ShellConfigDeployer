@@ -83,12 +83,6 @@ PROGRAMS = _config.get('programs') or _error(
     SCD_CONFIG, '"programs"'
 )
 
-PACKAGE_MANAGER = _config.get('package_manager') or _error(
-    "The package manager is not specified. Specify which package manager to use in %s under the attribute %s. " +
-    "Valid options are %s and %s.",
-    SCD_CONFIG, '"package_manager"', 'yum', 'apt-get'
-)
-
 SHELL = _config.get('shell')
 IGNORED_FILES = _config.get('ignored_files') or []
 PORT = _args.port or _config.get('port') or 22
