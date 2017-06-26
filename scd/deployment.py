@@ -59,7 +59,8 @@ class ConfigDeployer:
 
     def _install_programs_commands(self):
         self.printer.info('Installing ' + ', '.join([magenta(p) for p in self.programs]))
-        select_package_manager = textwrap.dedent("""
+
+        select_package_manager = """
                 if [ -f /etc/redhat-release ]; then
                     PACKAGE_MANAGER="yum"
                 elif [ -f /etc/arch-release ]; then
@@ -76,11 +77,10 @@ class ConfigDeployer:
                     echo "Unsupported distribution."
                     exit 1
                 fi
-            """).strip().split("\n")
+            """
 
-        programs = ' '.join(self.programs)
-        commands = select_package_manager
-        commands += ['sudo sh -c "yes | $PACKAGE_MANAGER install %s"' % programs]
+        commands = textwrap.dedent(select_package_manager).strip().split("\n")
+        commands += ['sudo sh -c "yes | $PACKAGE_MANAGER install %s"' % ' '.join(self.programs)]
         return commands
 
     def _change_shell_commands(self):
@@ -149,5 +149,10 @@ class ConfigDeployer:
         zip_file = zipfile.ZipFile(self.zip, 'w', zipfile.ZIP_DEFLATED)
         for f in self.files:
             arcname = f if not f.startswith(home) else f[len(home):]
-            zip_file.write(f, arcname=arcname)
+            try:
+                zip_file.write(f, arcname=arcname)
+            except PermissionError as e:
+                self.printer.error("Could not add %s to deployment zip file.", f)
+                self.printer.error("    " + str(e))
+                sys.exit(1)
         zip_file.close()

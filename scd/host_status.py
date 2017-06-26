@@ -12,12 +12,14 @@ class HostStatus:
     @staticmethod
     def initial_status():
         return {
-            'last_modified': 0,
-            'installed_programs': []
+            'last_deployment': 0,
+            'installed_programs': [],
+            'deployed_files': []
         }
 
     def __init__(self):
         self.status = self.read_server_status()
+        self.status['last_deployment']
 
     def read_server_status(self):
         if not os.path.isfile(self.SERVER_STATUS_FILE):
@@ -37,8 +39,9 @@ class HostStatus:
     def update(self, host):
         status = self.status[host] if host in self.status else {}
 
-        status['last_modified'] = time.time()
+        status['last_deployment'] = time.time()
         status['installed_programs'] = settings.PROGRAMS
+        status['deployed_files'] = settings.FILES
         if settings.SHELL:
             status['installed_programs'] += [settings.SHELL]
             status['shell'] = settings.SHELL

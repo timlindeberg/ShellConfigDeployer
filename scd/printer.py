@@ -29,7 +29,7 @@ class Printer:
             self._print_string(output, items, str_color, item_color)
         elif type(output) is list:
             for line in output:
-                print(self.prefix + self.indent + str_color(line))
+                self._print_string(self.indent + line, [], str_color, item_color)
 
     def _print_string(self, output, items, str_color, item_color):
         print(self.prefix, end='')

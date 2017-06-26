@@ -11,19 +11,21 @@ from scd.settings import VERBOSE, IGNORED_FILES, HOME, HOST_STATUS, HOST, FORCE,
 def main():
     printer = Printer(VERBOSE)
 
-    def modified_files(all_files, last_modified):
+    def modified_files(all_files, host_status):
         modified_files.res = []
 
-        def modified(file):
+        last_deployment = host_status['last_deployment']
+
+        def modified(file, check_timestamp):
             for ignore in IGNORED_FILES:
                 if fnmatch.fnmatch(file, ignore):
                     return
             if os.path.isdir(file):
                 for f in os.listdir(file):
-                    modified(file + '/' + f)
+                    modified(file + '/' + f, check_timestamp)
                 return
 
-            if os.path.getctime(file) > last_modified:
+            if not check_timestamp or os.path.getctime(file) > last_deployment:
                 modified_files.res.append(os.path.abspath(file))
 
         for f in all_files:
@@ -31,8 +33,13 @@ def main():
             if not (os.path.isfile(file) or os.path.isdir(file)):
                 printer.error("No such file or directory %s.", file)
                 sys.exit(1)
-            printer.info("Checking timestamp of %s", f, verbose=True)
-            modified(file)
+            check_timestamp = f in host_status['deployed_files']
+            if check_timestamp:
+                printer.info("Checking timestamp of %s", f, verbose=True)
+            else:
+                printer.info("Adding new file/folder %s", f, verbose=True)
+
+            modified(file, check_timestamp)
 
         return modified_files.res
 
@@ -47,7 +54,7 @@ def main():
 
     programs = PROGRAMS + ([SHELL] if SHELL else [])
     programs_to_install = [prog for prog in programs if prog not in host_status['installed_programs']]
-    files_to_deploy = modified_files(FILES, host_status['last_modified'])
+    files_to_deploy = modified_files(FILES, host_status)
     change_shell = SHELL and host_status.get('shell') != SHELL
     printer.info("Found %s files to deploy and %s programs to install.",
                  len(files_to_deploy), len(programs_to_install), verbose=True)
