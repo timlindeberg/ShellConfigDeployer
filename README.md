@@ -50,6 +50,25 @@ Not all Unix systems come with `unzip` already installed. `unzip` is needed by S
 to deploy the configuration files. By adding `unzip` to the programs list you can
 make sure that it is installed before deploying the files.
 
+## Installation
+
+* Make sure you have python3 installed.
+* Clone the repository
+
+`git clone git@github.com:timlindeberg/ShellConfigDeployer.git <SHELL_CONFIG_DEPLOYER>`
+
+* Install scd:
+
+```
+cd <SHELL_CONFIG_DEPLOYER>
+python3 setup.py install
+```
+
+* You can now use `scd` in the command line. When running it for the first
+time a default configuration will be created. 
+
+* Edit the configuration file (~/.scd/config) with your settings
+
 ## Configuration options
 
 #### "shell"

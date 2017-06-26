@@ -63,16 +63,22 @@ class ConfigDeployer:
         select_package_manager = """
                 if [ -f /etc/redhat-release ]; then
                     PACKAGE_MANAGER="yum"
+                    ANSWER_YES="-y"
                 elif [ -f /etc/arch-release ]; then
                     PACKAGE_MANAGER="pacman"
+                    ANSWER_YES="--noconfirm"
                 elif [ -f /etc/gentoo-release ]; then
                     PACKAGE_MANAGER="emerge"
+                    ANSWER_YES=""
                 elif [ -f /etc/SuSE-release ]; then
                     PACKAGE_MANAGER="zypper"
+                    ANSWER_YES="-n"
                 elif [ -f /etc/debian_version ]; then
                     PACKAGE_MANAGER="apt-get"
+                    ANSWER_YES="-y"
                 elif [ "$(uname)" == "Darwin" ]; then
                     PACKAGE_MANAGER="brew"
+                    ANSWER_YES=""
                 else
                     echo "Unsupported distribution."
                     exit 1
@@ -80,7 +86,7 @@ class ConfigDeployer:
             """
 
         commands = textwrap.dedent(select_package_manager).strip().split("\n")
-        commands += ["sudo sh -c 'yes | $PACKAGE_MANAGER install % s'" % " ".join(self.programs)]
+        commands += ['sudo $PACKAGE_MANAGER $ANSWER_YES install ' + " ".join(self.programs)]
         return commands
 
     def _change_shell_commands(self):

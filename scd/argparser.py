@@ -59,6 +59,8 @@ parser.add_argument("--clear-status", metavar="HOST", dest="clear_status", type=
                     help="clear the status of a given server and exit")
 parser.add_argument("--force", dest="force", action="store_true",
                     help="force a full deployment regardless of host status")
-parser.add_argument("--host-status", dest="host_status", action="store_true",
+parser.add_argument("--host-status", dest="print_host_status", action="store_true",
                     help="print host status and exit")
+parser.add_argument("--print-config", dest="print_config", action="store_true",
+                    help="print configuration and exit")
 parser.add_argument("--version", action="version", version="%(prog)s " + VERSION)

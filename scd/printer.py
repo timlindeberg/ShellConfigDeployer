@@ -35,7 +35,7 @@ class Printer:
         print(self.prefix, end="")
         i = 0
         for s in output.split("%s"):
-            print(str_color(s), end="")
+            print(str_color(s.replace(constants.HOME, "~")), end="")
             if i < len(items):
                 item = str(items[i]).replace(constants.HOME, "~")
                 print(item_color(item), end="")

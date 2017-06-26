@@ -16,7 +16,6 @@ setup(
     url='https://github.com/timlindeberg/ShellConfigDeployer',
     packages=find_packages(),
     install_requires=requirements,
-    scripts=['bin/sshop'],
     entry_points={'console_scripts': ['scd=scd.main:main']},
     platforms=['linux', 'macos'],
     keywords='shell configuration deployment'

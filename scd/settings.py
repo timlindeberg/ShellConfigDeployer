@@ -72,6 +72,28 @@ with open(SCD_CONFIG) as f:
         sys.exit(1)
 
 _args = parser.parse_args()
+HOST_STATUS = HostStatus()
+
+if _args.clear_status:
+    if HOST_STATUS.clear(_args.clear_status):
+        HOST_STATUS.save()
+        _printer.info("Cleared status of host %s.", _args.clear_status)
+        sys.exit(0)
+    else:
+        _printer.error("Host status file does not contain host %s.", _args.clear_status)
+        sys.exit(1)
+
+if _args.print_host_status:
+    _printer.success("Host Status")
+    _printer.info("")
+    _print_colored_json(HOST_STATUS.status)
+    sys.exit(0)
+
+if _args.print_config:
+    _printer.success("Config")
+    _printer.info("")
+    _print_colored_json(_config)
+    sys.exit(0)
 
 HOST = _args.host or _config.get("host") or _error(
     "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
@@ -98,29 +120,6 @@ IGNORED_FILES = _config.get("ignored_files") or []
 PORT = _args.port or _config.get("port") or 22
 VERBOSE = _args.verbose
 FORCE = _args.force
-
-HOST_STATUS = HostStatus()
-
-if _args.clear_status:
-    if HOST_STATUS.clear(_args.clear_status):
-        HOST_STATUS.save()
-        _printer.info("Cleared status of host %s.", _args.clear_status)
-        sys.exit(0)
-    else:
-        _printer.error("Host status file does not contain host %s.", _args.clear_status)
-        sys.exit(1)
-
-if _args.host_status:
-    _printer.success("Host Status")
-    _printer.info("")
-    _print_colored_json(HOST_STATUS.status)
-    sys.exit(0)
-
-if _args.config:
-    _printer.success("Config")
-    _printer.info("")
-    _print_colored_json(_config)
-    sys.exit(0)
 
 _password_file = _args.password_file
 

@@ -52,7 +52,7 @@ def main():
 
     host_status = HOST_STATUS.initial_status() if FORCE else HOST_STATUS[HOST]
 
-    programs = PROGRAMS + ([SHELL] if SHELL else [])
+    programs = set(PROGRAMS + ([SHELL] if SHELL else []))
     programs_to_install = [prog for prog in programs if prog not in host_status["installed_programs"]]
     files_to_deploy = modified_files(FILES, host_status)
     change_shell = SHELL and host_status.get("shell") != SHELL
