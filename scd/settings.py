@@ -10,7 +10,7 @@ from scd.printer import Printer
 
 DEFAULT_CONFIG = """
 {
-    "username": "<USER>",
+    "username": "",
     "install_method": "<yum> | <apt-get>",
     "ignore_files": [
         ".gitignore",
@@ -31,16 +31,21 @@ DEFAULT_CONFIG = """
 _printer = Printer(False)
 
 
-def error(msg, *items):
+def _error(msg, *items):
     _printer.error(msg, *items)
     sys.exit(1)
 
 
-_CONFIG = SCD_CONFIG.replace(HOME, '~')
+def _print_colored_json(obj):
+    formatted_json = json.dumps(obj, sort_keys=True, indent=4)
+    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
+    for line in colorful_json.split('\n'):
+        _printer.info(line)
+
 
 if not os.path.isfile(SCD_CONFIG):
-    _printer.error("Missing configuration file %s.", _CONFIG)
-    _printer.error("Creating default configuration. Please edit %s with your settings", _CONFIG)
+    _printer.error("Missing configuration file %s.", SCD_CONFIG)
+    _printer.error("Creating default configuration. Please edit %s with your settings", SCD_CONFIG)
     if not os.path.exists(SCD_FOLDER):
         os.makedirs(SCD_FOLDER)
 
@@ -52,43 +57,39 @@ with open(SCD_CONFIG) as f:
     try:
         _config = json.load(f)
     except json.decoder.JSONDecodeError as e:
-        _printer.error("Failed to parse configuration file %s:", _CONFIG)
+        _printer.error("Failed to parse configuration file %s:", SCD_CONFIG)
         _printer.error("    " + str(e))
         sys.exit(1)
 
 _args = parser.parse_args()
 
-HOST = _args.host or _config.get('host') or error(
+HOST = _args.host or _config.get('host') or _error(
     "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
-    _CONFIG, '"host"'
+    SCD_CONFIG, '"host"'
 )
 
-USER = _args.user or _config.get('user') or error(
+USER = _args.user or _config.get('user') or _error(
     "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
-    _CONFIG, '"user"', '--user', '-u'
+    SCD_CONFIG, '"user"', '--user', '-u'
 )
 
-SHELL = _config.get('shell') or error(
-    "Shell is not specified. Specify which shell to use in %s under the attribute %s.",
-    _CONFIG, '"shell"'
-)
-
-FILES = _config.get('files') or error(
+FILES = _config.get('files') or _error(
     "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
-    _CONFIG, '"files"'
+    SCD_CONFIG, '"files"'
 )
 
-PROGRAMS = _config.get('programs') or error(
+PROGRAMS = _config.get('programs') or _error(
     "Which programs to install are not specified. Specify which programs to install in %s under the attribute %s.",
-    _CONFIG, '"programs"'
+    SCD_CONFIG, '"programs"'
 )
 
-INSTALL_METHOD = _config.get('install_method') or error(
-    "The install method is not specified. Specify the installation method in %s under the attribute %s. " +
+PACKAGE_MANAGER = _config.get('package_manager') or _error(
+    "The package manager is not specified. Specify which package manager to use in %s under the attribute %s. " +
     "Valid options are %s and %s.",
-    _CONFIG, '"install_method"', 'yum', 'apt-get'
+    SCD_CONFIG, '"package_manager"', 'yum', 'apt-get'
 )
 
+SHELL = _config.get('shell')
 IGNORED_FILES = _config.get('ignored_files') or []
 PORT = _args.port or _config.get('port') or 22
 VERBOSE = _args.verbose
@@ -98,17 +99,20 @@ HOST_STATUS = HostStatus()
 
 if _args.clear_status:
     if HOST_STATUS.clear(_args.clear_status):
-        _printer.info("Clearing status of host %s.", _args.clear_status)
         HOST_STATUS.save()
+        _printer.info("Cleared status of host %s.", _args.clear_status)
     else:
         _printer.error("Host status file does not contain host %s.", _args.clear_status)
     sys.exit(0)
 
 if _args.host_status:
-    formatted_json = json.dumps(HOST_STATUS.status, sort_keys=True, indent=4)
-    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
-    for line in colorful_json.split('\n'):
-        _printer.info(line)
+    _printer.success("Host Status")
+    _print_colored_json(HOST_STATUS.status)
+    sys.exit(0)
+
+if _args.config:
+    _printer.success("Config")
+    _print_colored_json(_config)
     sys.exit(0)
 
 _password_file = _args.password_file
@@ -117,7 +121,7 @@ if _args.password:
     PASSWORD = _args.password
 elif _password_file:
     if not os.path.isfile(_password_file):
-        error("The given password file %s does not exist.", _password_file)
+        _error("The given password file %s does not exist.", _password_file)
 
     PASSWORD = open(_password_file).read().strip()
 else:

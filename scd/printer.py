@@ -1,4 +1,5 @@
 from scd import colors
+from scd import constants
 
 
 class Printer:
@@ -14,10 +15,14 @@ class Printer:
         self._print(output, items, colors.no_color, colors.magenta)
 
     def success(self, output, *items):
-        self._print(output, items, colors.green, lambda s: colors.green(colors.bold(s)))
+        def green_bold(s): return colors.green(colors.bold(s))
+
+        self._print(output, items, green_bold, green_bold)
 
     def error(self, output, *items):
-        self._print(output, items, colors.red, lambda s: colors.red(colors.bold(s)))
+        def red_bold(s): return colors.red(colors.bold(s))
+
+        self._print(output, items, colors.red, red_bold)
 
     def _print(self, output, items, str_color, item_color):
         if type(output) is str:
@@ -32,6 +37,7 @@ class Printer:
         for s in output.split("%s"):
             print(str_color(s), end='')
             if i < len(items):
-                print(item_color(items[i]), end='')
+                item = str(items[i]).replace(constants.HOME, '~')
+                print(item_color(item), end='')
                 i += 1
         print()

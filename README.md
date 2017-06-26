@@ -10,7 +10,7 @@ track of the time of deployment as well as a list of programs that have been
 installed. Any files that have since changed or been added will be redeployed
 to the server. It can not handle removal of files or programs.
 
-# Usage
+## Usage
 Use scd on the command line to deploy your configuration to the desired host:
 
 `scd -p vagrant -P 2222 --verbose 127.0.0.1`
@@ -21,9 +21,10 @@ be deployed. Example:
 ```json
 {
     "user": "vagrant",
-    "install_method": "apt-get",
+    "package_manager": "apt-get",
     "host": "127.0.0.1",
     "port": 2222,
+    "shell": "zsh",
     "ignored_files": [
         ".gitignore",
         ".git",
@@ -36,7 +37,6 @@ be deployed. Example:
     ],
     "programs": [
         "unzip",
-        "zsh",
         "tree"
     ]
 }
@@ -45,13 +45,61 @@ be deployed. Example:
 This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
 .gitconfig placed in ~ on to the remote host and install zsh and tree.
 It will ignore .git folders and .DS_Store files and sign on to the server using
-the user 'vagrant' and install programs using apt-get. Server and port can be
-specified in the configuration but is normally given as a command line
-argument.
+the user 'vagrant' and install programs using apt-get.
+It will also install zsh and change the default login shell for the user to 
+zsh. Server and port can be specified in the configuration but is normally 
+given as a command line argument. 
 
 ##### NOTE:
 
-Most Unix systems come with unzip already installed but not all. unzip is needed
-to deploy the configuration files. By adding unzip to the programs list you can 
-make sure that unzip is installed before deploying the files.
+Most Unix systems come with unzip already installed but not all. unzip is 
+needed to deploy the configuration files. By adding unzip to the programs list
+you can make sure that unzip is installed before deploying the files.
+
+## Configuration options
+
+#### "shell"
+Specifies a shell to use on the remote server. If specified, the selected shell
+will be installed together with the other specified programs and the default
+login shell will be changed to this shell. 
+
+#### "programs"
+Specifies a list of program to install on the remote host.
+
+#### "files"
+Specifies a list of files and directories to deploy to the remote host. The
+files are relative to the home folder and will be deployed to the home folder
+of the selected user on the remote host. Example:
+
+`"files": [ ".oh-my-zsh" ]`
+
+Will deploy the folder `~/.oh-my-zsh` to `/home/<USER>/.oh-my-zsh` on the
+remote host.
+
+#### "ignored_files"
+Specifies a list of files and directories that will be ignored when looking
+for files to deploy.
+
+#### "user"
+Selects which user to authenticate against the host with. Can also be specified
+with the flag --user (-u) if you use different user names for different hosts.
+The user needs sudo rights in order to install programs.
+
+#### "host"
+Selects which host to deploy the configuration to. Normally this would be given
+as a command line argument but if you usually connect to the same host you can 
+specify it in the config file.
+
+#### "port"
+Selects which port to connect through. Can also be specified using the flags 
+--port (-P). Defaults to 22.
+
+
+#### "package_manager"
+Specifies which package_manager to use on the remote host. This property is
+mandatory.
+
+
+
+
 

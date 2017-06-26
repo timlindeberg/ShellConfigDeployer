@@ -5,7 +5,7 @@ import sys
 
 from scd.deployment import ConfigDeployer
 from scd.printer import Printer
-from scd.settings import VERBOSE, IGNORED_FILES, HOME, HOST_STATUS, HOST, FORCE, PROGRAMS, FILES
+from scd.settings import VERBOSE, IGNORED_FILES, HOME, HOST_STATUS, HOST, FORCE, PROGRAMS, FILES, SHELL
 
 
 def main():
@@ -27,12 +27,17 @@ def main():
                 modified_files.res.append(os.path.abspath(file))
 
         for f in all_files:
+            file = HOME + '/' + f
+            if not (os.path.isfile(file) or os.path.isdir(file)):
+                printer.error("No such file or directory %s.", file)
+                sys.exit(1)
             printer.info("Checking timestamp of %s", f, verbose=True)
-            modified(HOME + '/' + f)
+            modified(file)
 
         return modified_files.res
 
     def signal_handler(signal, frame):
+        print()  # since most terminals echo ^C
         printer.error("Received Ctrl+C, exiting...")
         sys.exit(0)
 
@@ -40,19 +45,21 @@ def main():
 
     host_status = HOST_STATUS.initial_status() if FORCE else HOST_STATUS[HOST]
 
-    programs_to_install = [prog for prog in PROGRAMS if prog not in host_status['installed_programs']]
+    programs = PROGRAMS + ([SHELL] if SHELL else [])
+    programs_to_install = [prog for prog in programs if prog not in host_status['installed_programs']]
     files_to_deploy = modified_files(FILES, host_status['last_modified'])
-
+    change_shell = SHELL and host_status.get('shell') != SHELL
     printer.info("Found %s files to deploy and %s programs to install.",
                  len(files_to_deploy), len(programs_to_install), verbose=True)
-    if len(files_to_deploy) == 0 and len(programs_to_install) == 0:
+
+    if not files_to_deploy and not programs_to_install and not change_shell:
         printer.info("No changes to %s. Skipping deployment.", HOST, verbose=True)
         sys.exit(0)
 
-    config_deployer = ConfigDeployer(HOST, programs_to_install, files_to_deploy, printer)
+    config_deployer = ConfigDeployer(HOST, programs_to_install, files_to_deploy, change_shell, printer)
     success = config_deployer.deploy()
     if success:
-        printer.success("%s", "Configuration successfully deployed.")
+        printer.success("Configuration successfully deployed.")
         HOST_STATUS.update(HOST)
         HOST_STATUS.save()
     else:

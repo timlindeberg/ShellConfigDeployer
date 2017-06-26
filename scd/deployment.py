@@ -11,9 +11,10 @@ ZIP_NAME = 'scd_conf.zip'
 
 
 class ConfigDeployer:
-    def __init__(self, host, programs, files, printer):
+    def __init__(self, host, programs, files, change_shell, printer):
         self.programs = programs
         self.files = files
+        self.change_shell = change_shell
         self.printer = printer
 
         self.zip = settings.SCD_FOLDER + '/' + ZIP_NAME
@@ -47,12 +48,16 @@ class ConfigDeployer:
         if len(self.programs) != 0:
             self.printer.info('Installing ' + ', '.join([magenta(p) for p in self.programs]))
             programs = ' '.join(self.programs)
-            commands += ['sudo %s -y -q install %s' % (settings.INSTALL_METHOD, programs)]
+            commands += ['sudo %s -y -q install %s' % (settings.PACKAGE_MANAGER, programs)]
+
+        if self.change_shell:
+            self.printer.info('Changing default shell to %s', settings.SHELL)
+            commands += ['sudo chsh -s $(which %s) %s' % (settings.SHELL, settings.USER)]
 
         if len(self.files) != 0:
             self.printer.info('Deploying %s file(s)', len(self.files))
             if len(self.files) < 10:
-                self.printer.info([magenta(f.replace(settings.HOME, '~')) for f in self.files])
+                self.printer.info([magenta(f) for f in self.files])
             self._deploy_zip()
             commands += ['cd ~', 'unzip -q -o ./%s' % ZIP_NAME, 'rm %s' % ZIP_NAME]
 

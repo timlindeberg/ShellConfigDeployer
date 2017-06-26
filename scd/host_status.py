@@ -38,7 +38,10 @@ class HostStatus:
         status = self.status[host] if host in self.status else {}
 
         status['last_modified'] = time.time()
-        status['installed_programs'] = settings.PROGRAMS + [settings.SHELL]
+        status['installed_programs'] = settings.PROGRAMS
+        if settings.SHELL:
+            status['installed_programs'] += [settings.SHELL]
+            status['shell'] = settings.SHELL
         self.status[host] = status
 
     def clear(self, host):
