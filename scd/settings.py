@@ -43,6 +43,17 @@ def _print_colored_json(obj):
         _printer.info(line)
 
 
+def _color_exceptions(type, value, tb):
+    import traceback
+
+    tbtext = ''.join(traceback.format_exception(type, value, tb))
+    lexer = lexers.get_lexer_by_name("pytb", stripall=True)
+    formatter = formatters.TerminalFormatter()
+    sys.stderr.write(highlight(tbtext, lexer, formatter))
+
+
+sys.excepthook = _color_exceptions
+
 if not os.path.isfile(SCD_CONFIG):
     _printer.error("Missing configuration file %s.", SCD_CONFIG)
     _printer.error("Creating default configuration. Please edit %s with your settings", SCD_CONFIG)
