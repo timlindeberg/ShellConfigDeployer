@@ -2,7 +2,7 @@ import argparse
 
 from scd.constants import *
 
-prog_description = '''
+prog_description = """
 Deploys shell configuration to remote servers. Use ~/.scd/config to specify
 what programs should be installed on the remote server and what files should
 be deployed. Example:
@@ -39,28 +39,26 @@ SCD keeps track of which servers have correct shell configuration by keeping
 track of the time of deployment as well as a list of programs that have been
 installed. Any files that have since changed or been added will be redeployed
 to the server. It can not handle removal of files or programs.
-'''
+"""
 
-parser = argparse.ArgumentParser(prog='scd', description=prog_description,
+parser = argparse.ArgumentParser(prog="scd", description=prog_description,
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('host', type=str, nargs='?',
-                    help='the host to connect to')
-parser.add_argument('-P', '--port', dest='port', type=int,
-                    help='the port to connect to (default 22)')
-parser.add_argument('-f', '--file', dest='password_file', type=str, default='',
-                    help='a file containing the password to use')
-parser.add_argument('-p', '--password', dest='password', type=str,
-                    help='the password.')
-parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                    help='print more output')
-parser.add_argument('-u', '--user', dest='user', type=str,
-                    help='the user to authenticate with')
-parser.add_argument('--clear-status', metavar='HOST', dest='clear_status', type=str,
-                    help='clear the status of a given server and exit')
-parser.add_argument('--force', dest='force', action='store_true',
-                    help='force a full deployment regardless of host status')
-parser.add_argument('--host-status', dest='host_status', action='store_true',
-                    help='print host status and exit')
-parser.add_argument('--config', dest='config', action='store_true',
-                    help='print config and exit')
-parser.add_argument('--version', action='version', version='%(prog)s ' + VERSION)
+parser.add_argument("host", type=str, nargs="?",
+                    help="the host to connect to")
+parser.add_argument("-P", "--port", dest="port", type=int,
+                    help="the port to connect to (default 22)")
+parser.add_argument("-f", "--file", dest="password_file", type=str, default="",
+                    help="a file containing the password to use")
+parser.add_argument("-p", "--password", dest="password", type=str,
+                    help="the password.")
+parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
+                    help="print more output")
+parser.add_argument("-u", "--user", dest="user", type=str,
+                    help="the user to authenticate with")
+parser.add_argument("--clear-status", metavar="HOST", dest="clear_status", type=str,
+                    help="clear the status of a given server and exit")
+parser.add_argument("--force", dest="force", action="store_true",
+                    help="force a full deployment regardless of host status")
+parser.add_argument("--host-status", dest="host_status", action="store_true",
+                    help="print host status and exit")
+parser.add_argument("--version", action="version", version="%(prog)s " + VERSION)

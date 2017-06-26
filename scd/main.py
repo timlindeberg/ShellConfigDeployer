@@ -14,7 +14,7 @@ def main():
     def modified_files(all_files, host_status):
         modified_files.res = []
 
-        last_deployment = host_status['last_deployment']
+        last_deployment = host_status["last_deployment"]
 
         def modified(file, check_timestamp):
             for ignore in IGNORED_FILES:
@@ -22,18 +22,18 @@ def main():
                     return
             if os.path.isdir(file):
                 for f in os.listdir(file):
-                    modified(file + '/' + f, check_timestamp)
+                    modified(file + "/" + f, check_timestamp)
                 return
 
             if not check_timestamp or os.path.getctime(file) > last_deployment:
                 modified_files.res.append(os.path.abspath(file))
 
         for f in all_files:
-            file = HOME + '/' + f
+            file = HOME + "/" + f
             if not (os.path.isfile(file) or os.path.isdir(file)):
                 printer.error("No such file or directory %s.", file)
                 sys.exit(1)
-            check_timestamp = f in host_status['deployed_files']
+            check_timestamp = f in host_status["deployed_files"]
             if check_timestamp:
                 printer.info("Checking timestamp of %s", f, verbose=True)
             else:
@@ -53,9 +53,9 @@ def main():
     host_status = HOST_STATUS.initial_status() if FORCE else HOST_STATUS[HOST]
 
     programs = PROGRAMS + ([SHELL] if SHELL else [])
-    programs_to_install = [prog for prog in programs if prog not in host_status['installed_programs']]
+    programs_to_install = [prog for prog in programs if prog not in host_status["installed_programs"]]
     files_to_deploy = modified_files(FILES, host_status)
-    change_shell = SHELL and host_status.get('shell') != SHELL
+    change_shell = SHELL and host_status.get("shell") != SHELL
     printer.info("Found %s files to deploy and %s programs to install.",
                  len(files_to_deploy), len(programs_to_install), verbose=True)
 
@@ -73,5 +73,5 @@ def main():
         printer.error("%s", "Failed to deploy configuration.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

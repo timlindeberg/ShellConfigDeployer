@@ -1,5 +1,6 @@
 import json
 import sys
+import traceback
 
 from pygments import highlight, lexers, formatters
 
@@ -39,17 +40,15 @@ def _error(msg, *items):
 def _print_colored_json(obj):
     formatted_json = json.dumps(obj, sort_keys=True, indent=4)
     colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
-    for line in colorful_json.split('\n'):
+    for line in colorful_json.split("\n"):
         _printer.info(line)
 
 
 def _color_exceptions(type, value, tb):
-    import traceback
-
-    tbtext = ''.join(traceback.format_exception(type, value, tb))
+    traceback_text = "".join(traceback.format_exception(type, value, tb))
     lexer = lexers.get_lexer_by_name("pytb", stripall=True)
     formatter = formatters.TerminalFormatter()
-    sys.stderr.write(highlight(tbtext, lexer, formatter))
+    sys.stderr.write(highlight(traceback_text, lexer, formatter))
 
 
 sys.excepthook = _color_exceptions
@@ -60,7 +59,7 @@ if not os.path.isfile(SCD_CONFIG):
     if not os.path.exists(SCD_FOLDER):
         os.makedirs(SCD_FOLDER)
 
-    with open(SCD_CONFIG, 'w') as f:
+    with open(SCD_CONFIG, "w") as f:
         f.write(DEFAULT_CONFIG)
         sys.exit(1)
 
@@ -74,29 +73,29 @@ with open(SCD_CONFIG) as f:
 
 _args = parser.parse_args()
 
-HOST = _args.host or _config.get('host') or _error(
+HOST = _args.host or _config.get("host") or _error(
     "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
     SCD_CONFIG, '"host"'
 )
 
-USER = _args.user or _config.get('user') or _error(
+USER = _args.user or _config.get("user") or _error(
     "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
-    SCD_CONFIG, '"user"', '--user', '-u'
+    SCD_CONFIG, '"user"', "--user", "-u"
 )
 
-FILES = _config.get('files') or _error(
+FILES = _config.get("files") or _error(
     "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
     SCD_CONFIG, '"files"'
 )
 
-PROGRAMS = _config.get('programs') or _error(
+PROGRAMS = _config.get("programs") or _error(
     "Which programs to install are not specified. Specify which programs to install in %s under the attribute %s.",
     SCD_CONFIG, '"programs"'
 )
 
-SHELL = _config.get('shell')
-IGNORED_FILES = _config.get('ignored_files') or []
-PORT = _args.port or _config.get('port') or 22
+SHELL = _config.get("shell")
+IGNORED_FILES = _config.get("ignored_files") or []
+PORT = _args.port or _config.get("port") or 22
 VERBOSE = _args.verbose
 FORCE = _args.force
 
@@ -106,17 +105,20 @@ if _args.clear_status:
     if HOST_STATUS.clear(_args.clear_status):
         HOST_STATUS.save()
         _printer.info("Cleared status of host %s.", _args.clear_status)
+        sys.exit(0)
     else:
         _printer.error("Host status file does not contain host %s.", _args.clear_status)
-    sys.exit(0)
+        sys.exit(1)
 
 if _args.host_status:
     _printer.success("Host Status")
+    _printer.info("")
     _print_colored_json(HOST_STATUS.status)
     sys.exit(0)
 
 if _args.config:
     _printer.success("Config")
+    _printer.info("")
     _print_colored_json(_config)
     sys.exit(0)
 

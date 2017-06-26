@@ -32,12 +32,12 @@ class Printer:
                 self._print_string(self.indent + line, [], str_color, item_color)
 
     def _print_string(self, output, items, str_color, item_color):
-        print(self.prefix, end='')
+        print(self.prefix, end="")
         i = 0
         for s in output.split("%s"):
-            print(str_color(s), end='')
+            print(str_color(s), end="")
             if i < len(items):
-                item = str(items[i]).replace(constants.HOME, '~')
-                print(item_color(item), end='')
+                item = str(items[i]).replace(constants.HOME, "~")
+                print(item_color(item), end="")
                 i += 1
         print()

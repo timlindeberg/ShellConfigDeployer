@@ -8,7 +8,7 @@ import paramiko
 from scd import settings
 from scd.colors import *
 
-ZIP_NAME = 'scd_conf.zip'
+ZIP_NAME = "scd_conf.zip"
 
 
 class ConfigDeployer:
@@ -18,7 +18,7 @@ class ConfigDeployer:
         self.change_shell = change_shell
         self.printer = printer
 
-        self.zip = settings.SCD_FOLDER + '/' + ZIP_NAME
+        self.zip = settings.SCD_FOLDER + "/" + ZIP_NAME
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -30,13 +30,13 @@ class ConfigDeployer:
                 printer.error(
                     "Could not authenticate against %s. No password was provided. " +
                     "Provide a password using the %s or %s flags.",
-                    host, '-p', '-f'
+                    host, "-p", "-f"
                 )
             else:
-                printer.error('Permission denied.')
+                printer.error("Permission denied.")
             sys.exit(5)
         except Exception as e:
-            printer.error('Could not connect to %s', host)
+            printer.error("Could not connect to %s", host)
             printer.error(str(e))
             sys.exit(1)
 
@@ -44,7 +44,7 @@ class ConfigDeployer:
         self.ssh = ssh
 
     def deploy(self):
-        commands = ['set -e', 'set -x']
+        commands = ["set -e", "set -x"]
 
         if len(self.programs) != 0:
             commands += self._install_programs_commands()
@@ -58,7 +58,7 @@ class ConfigDeployer:
         return self._execute_script(commands)
 
     def _install_programs_commands(self):
-        self.printer.info('Installing ' + ', '.join([magenta(p) for p in self.programs]))
+        self.printer.info("Installing " + ", ".join([magenta(p) for p in self.programs]))
 
         select_package_manager = """
                 if [ -f /etc/redhat-release ]; then
@@ -80,31 +80,31 @@ class ConfigDeployer:
             """
 
         commands = textwrap.dedent(select_package_manager).strip().split("\n")
-        commands += ['sudo sh -c "yes | $PACKAGE_MANAGER install %s"' % ' '.join(self.programs)]
+        commands += ["sudo sh -c 'yes | $PACKAGE_MANAGER install % s'" % " ".join(self.programs)]
         return commands
 
     def _change_shell_commands(self):
-        self.printer.info('Changing default shell to %s', settings.SHELL)
-        return ['sudo chsh -s $(which %s) %s' % (settings.SHELL, settings.USER)]
+        self.printer.info("Changing default shell to %s", settings.SHELL)
+        return ["sudo chsh -s $(which %s) %s" % (settings.SHELL, settings.USER)]
 
     def _deploy_files_commands(self):
-        self.printer.info('Deploying %s file(s)', len(self.files))
+        self.printer.info("Deploying %s file(s)", len(self.files))
         if len(self.files) < 10:
             self.printer.info([magenta(f) for f in self.files])
         self._deploy_zip()
-        return ['cd ~', 'unzip -q -o ./%s' % ZIP_NAME, 'rm %s' % ZIP_NAME]
+        return ["cd ~", "unzip -q -o ./%s" % ZIP_NAME, "rm %s" % ZIP_NAME]
 
     def _execute_script(self, commands):
         session = self.transport.open_session()
         session.get_pty()
 
-        script = '\n'.join(commands)
+        script = "\n".join(commands)
 
-        self.printer.info('Executing script on server:', verbose=True)
+        self.printer.info("Executing script on server:", verbose=True)
         self.printer.info(commands, verbose=True)
 
         session.exec_command(script)
-        stdout = session.makefile('rb', -1)
+        stdout = session.makefile("rb", -1)
         lines = self._read_output(stdout)
 
         status = session.recv_exit_status()
@@ -116,37 +116,37 @@ class ConfigDeployer:
 
     @staticmethod
     def _read_output(source):
-        output = ''
+        output = ""
         while True:
-            lines = source.read().decode('utf-8', errors='replace')
+            lines = source.read().decode("utf-8", errors="replace")
             if len(lines) == 0:
                 break
 
-            output += lines.replace('\r\r', '\n').replace('\r\n', '\n')
+            output += lines.replace("\r\r", "\n").replace("\r\n", "\n")
         source.close()
-        return [line.strip() for line in output.split('\n') if len(line) > 0]
+        return [line.strip() for line in output.split("\n") if len(line) > 0]
 
     def _print_output(self, status, lines):
         if status != 0:
-            self.printer.error('Remote commands failed with status %s:', status)
-            self.printer.error([magenta(l) if l.startswith('+') else red(l) for l in lines])
+            self.printer.error("Remote commands failed with status %s:", status)
+            self.printer.error([magenta(l) if l.startswith("+") else red(l) for l in lines])
         else:
-            self.printer.info('Output:', verbose=True)
-            self.printer.info([magenta(l) if l.startswith('+') else l for l in lines], verbose=True)
+            self.printer.info("Output:", verbose=True)
+            self.printer.info([magenta(l) if l.startswith("+") else l for l in lines], verbose=True)
 
     def _deploy_zip(self):
         self._create_zip()
 
         sftp = paramiko.SFTPClient.from_transport(self.transport)
-        self.printer.info('Deploying zip file to server', verbose=True)
-        sftp.put(self.zip, '/home/%s/%s' % (settings.USER, ZIP_NAME))
+        self.printer.info("Deploying zip file to server", verbose=True)
+        sftp.put(self.zip, "/home/%s/%s" % (settings.USER, ZIP_NAME))
         sftp.close()
         os.remove(self.zip)
 
     def _create_zip(self):
-        self.printer.info('Creating new zip file %s.', self.zip, verbose=True)
-        home = os.path.expanduser('~') + '/'
-        zip_file = zipfile.ZipFile(self.zip, 'w', zipfile.ZIP_DEFLATED)
+        self.printer.info("Creating new zip file %s.", self.zip, verbose=True)
+        home = os.path.expanduser("~") + "/"
+        zip_file = zipfile.ZipFile(self.zip, "w", zipfile.ZIP_DEFLATED)
         for f in self.files:
             arcname = f if not f.startswith(home) else f[len(home):]
             try:
