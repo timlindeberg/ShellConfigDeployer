@@ -13,16 +13,18 @@ from scd.settings import Settings
 
 
 def _color_exceptions(type, value, tb):
-    printer = Printer()
     traceback_text = "".join(traceback.format_exception(type, value, tb))
     lexer = lexers.get_lexer_by_name("pytb", stripall=True)
     formatter = formatters.TerminalFormatter()
-    printer.error("Exited with an unknown error:")
-    for line in highlight(traceback_text, lexer, formatter).strip().split("\n"):
+    stack_trace = highlight(traceback_text, lexer, formatter).strip().split("\n")
+
+    printer = Printer()
+    printer.error("An unknown error occurred:")
+    for line in stack_trace:
         printer.info(line)
 
 
-def _signal_handler(signal, frame):
+def _sigint_handler(signal, frame):
     print()  # since most terminals echo ^C
     Printer().error("Received Ctrl+C, exiting...")
     sys.exit(0)
@@ -63,7 +65,7 @@ def _modified_files(settings, host_status, printer):
 
 def main():
     sys.excepthook = _color_exceptions
-    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGINT, _sigint_handler)
 
     settings = Settings()
     printer = Printer(settings.verbose)

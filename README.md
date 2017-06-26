@@ -113,7 +113,10 @@ Prints a help message and exits.
 ##### --port (-P) PORT
 Specifies which port to connect to, defaults to 22.
 
-##### --file (-f) PATH
+##### --read-password (-r)
+Reads the password from user input.
+
+##### --password-file (-f) PATH
 Specifies a path to a file containing the password to use when authenticating 
 against the host. This is preferable to passing a password directly using
 the `-p` flag since otherwise the password can be seen by other processes.

@@ -48,7 +48,7 @@ class ConfigDeployer:
             if self.password is None:
                 self.printer.error(
                     "Could not authenticate against %s. No password was provided. " +
-                    "Provide a password using the %s or %s flags.", host, "-p", "-f"
+                    "Provide a password using the %s, %s or %s flags.", host, "-r", "-f", "-p"
                 )
             else:
                 self.printer.error("Permission denied.")

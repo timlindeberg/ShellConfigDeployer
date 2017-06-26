@@ -1,3 +1,4 @@
+import getpass
 import json
 import sys
 import textwrap
@@ -129,6 +130,10 @@ class Settings:
                 self._error("The given password file %s does not exist.", password_file)
 
             return open(password_file).read().strip()
+
+        if args.read_password:
+            self.printer.info("Enter password: ", end="")
+            return getpass.getpass(prompt="")
 
         if args.password:
             return args.password

@@ -47,10 +47,12 @@ parser.add_argument("host", type=str, nargs="?",
                     help="the host to connect to")
 parser.add_argument("-P", "--port", dest="port", type=int,
                     help="the port to connect to (default 22)")
-parser.add_argument("-f", "--file", dest="password_file", type=str, default="",
+parser.add_argument("-f", "--password-file", dest="password_file", type=str, default="",
                     help="a file containing the password to use")
+parser.add_argument("-r", "--read-password", dest="read_password", action="store_true",
+                    help="read the password from stdin")
 parser.add_argument("-p", "--password", dest="password", type=str,
-                    help="the password.")
+                    help="the password")
 parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                     help="print more output")
 parser.add_argument("-u", "--user", dest="user", type=str,
