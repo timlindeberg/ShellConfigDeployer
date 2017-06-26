@@ -11,10 +11,8 @@ from scd.printer import Printer
 
 DEFAULT_CONFIG = """
 {
-    "username": "",
-    "install_method": "<yum> | <apt-get>",
-    "ignore_files": [
-        ".gitignore",
+    "user": "",
+    "ignored_files": [
         ".git",
         ".DS_Store"
     ],
@@ -24,7 +22,7 @@ DEFAULT_CONFIG = """
     ],
     "programs": [
         "unzip",
-        "zsh"
+        "tree"
     ]
 }
 """.strip()
