@@ -1,5 +1,5 @@
 from scd import colors
-from scd import constants
+from scd.constants import *
 
 
 class Printer:
@@ -35,9 +35,9 @@ class Printer:
         print(self.prefix, end="")
         i = 0
         for s in output.split("%s"):
-            print(str_color(s.replace(constants.HOME, "~")), end="")
+            print(str_color(s.replace(HOME, "~")), end="")
             if i < len(items):
-                item = str(items[i]).replace(constants.HOME, "~")
+                item = str(items[i]).replace(HOME, "~")
                 print(item_color(item), end="")
                 i += 1
         print(end=end, flush=True)

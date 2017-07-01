@@ -26,16 +26,27 @@ class HostStatus:
         status["last_deployment"] = time_stamp
         return status
 
-    def update(self, settings):
+    def update(self, settings, installed_programs=None, deployed_files=None, shell=None):
+        if not (installed_programs or deployed_files or shell):
+            return
+
         host = settings.host
         status = self.status[host] if host in self.status else {}
         status["last_deployment"] = self._time_stamp_to_date(time.time())
-        status["installed_programs"] = settings.programs
-        status["deployed_files"] = settings.files
+
+        programs = set(status.get("installed_programs") or [])
+
+        if installed_programs:
+            programs.update(installed_programs)
+        if deployed_files:
+            status["deployed_files"] = deployed_files
         if settings.shell:
-            status["installed_programs"] += [settings.shell]
+            programs.add(settings.shell)
             status["shell"] = settings.shell
+
+        status["installed_programs"] = list(programs)
         self.status[host] = status
+        self.save()
 
     def clear(self, host):
         if self.status.get(host):

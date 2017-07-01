@@ -13,22 +13,22 @@ from scd.printer import Printer
 
 class Settings:
     DEFAULT_CONFIG = textwrap.dedent("""
-        {
-            "user": "",
-            "ignored_files": [
-                ".git",
-                ".DS_Store"
-            ],
-            "files": [
-                ".oh-my-zsh",
-                ".zshrc"
-            ],
-            "programs": [
-                "unzip",
-                "tree"
-            ]
-        }
-        """).strip()
+    {
+        "user": "",
+        "ignored_files": [
+            ".git",
+            ".DS_Store"
+        ],
+        "files": [
+            ".oh-my-zsh",
+            ".zshrc"
+        ],
+        "programs": [
+            "unzip",
+            "tree"
+        ]
+    }
+    """).strip()
 
     def __init__(self):
         self.printer = Printer(False)
