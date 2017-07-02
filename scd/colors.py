@@ -10,45 +10,53 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
+remove_color = True
+
+
+def _color(c, s):
+    if remove_color:
+        return str(s)
+    return c + str(s) + CLEAR
+
 
 def bold(s):
-    return BOLD + str(s) + CLEAR
+    return _color(BOLD, s)
 
 
 def underline(s):
-    return UNDERLINE + str(s) + CLEAR
+    return _color(UNDERLINE, s)
 
 
 def black(s):
-    return BLACK + str(s) + CLEAR
+    return _color(BLACK, s)
 
 
 def red(s):
-    return RED + str(s) + CLEAR
+    return _color(RED, s)
 
 
 def green(s):
-    return GREEN + str(s) + CLEAR
+    return _color(GREEN, s)
 
 
 def yellow(s):
-    return YELLOW + str(s) + CLEAR
+    return _color(YELLOW, s)
 
 
 def blue(s):
-    return BLUE + str(s) + CLEAR
+    return _color(BLUE, s)
 
 
 def magenta(s):
-    return MAGENTA + str(s) + CLEAR
+    return _color(MAGENTA, s)
 
 
 def cyan(s):
-    return CYAN + str(s) + CLEAR
+    return _color(CYAN, s)
 
 
 def white(s):
-    return WHITE + str(s) + CLEAR
+    return _color(WHITE, s)
 
 
 def no_color(s):

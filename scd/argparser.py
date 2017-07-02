@@ -57,6 +57,8 @@ parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                     help="print more output")
 parser.add_argument("-u", "--user", dest="user", type=str,
                     help="the user to authenticate with")
+parser.add_argument("--no-color", dest="no_color", action="store_true",
+                    help="removes all color from output")
 parser.add_argument("--clear-status", metavar="HOST", dest="clear_status", type=str,
                     help="clear the status of a given server and exit")
 parser.add_argument("--force", dest="force", action="store_true",

@@ -17,7 +17,6 @@ class Host:
         def _execute_command(connection):
             session = connection.get_transport().open_session()
             session.get_pty()  # So we can run sudo etc.
-
             commands = self._get_commands(command, exit_on_failure, echo_commands)
             self.printer.info("Executing commands on host:", verbose=True)
             self.printer.info(commands, verbose=True)
@@ -42,7 +41,7 @@ class Host:
         return self._with_connection(_send_file)
 
     @staticmethod
-    def _get_commands(self, commands, exit_on_failure=True, echo_commands=True):
+    def _get_commands(commands, exit_on_failure=True, echo_commands=True):
         if exit_on_failure and echo_commands:
             c = ["set -ex"]
         elif exit_on_failure:

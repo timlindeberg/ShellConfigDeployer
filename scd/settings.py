@@ -1,10 +1,11 @@
-import getpass
 import json
 import sys
 import textwrap
+from getpass import getpass
 
 from pygments import highlight, lexers, formatters
 
+from scd import colors
 from scd.argparser import parser
 from scd.constants import *
 from scd.host_status import HostStatus
@@ -33,13 +34,16 @@ class Settings:
     """).strip()
 
     def __init__(self):
+        args = parser.parse_args()
+        colors.remove_color = args.no_color
+
         self.printer = Printer(False)
 
         self._check_config_file()
-        config = self._parse_config_file()
         self.host_status = HostStatus()
-
-        args = parser.parse_args()
+        config = self._parse_config_file()
+        
+        colors.remove_color = args.no_color or config.get("use_color") is False
 
         if args.clear_status:
             self._clear_host_status(args.clear_status)
@@ -57,7 +61,7 @@ class Settings:
             return
 
         self.printer.error("Missing configuration file %s.", SCD_CONFIG)
-        self.printer.error("Creating default configuration. Please edit %s with your settings", SCD_CONFIG)
+        self.printer.error("Creating default configuration. Please edit %s with your settings.", SCD_CONFIG)
         if not os.path.exists(SCD_FOLDER):
             os.makedirs(SCD_FOLDER)
 
@@ -136,7 +140,7 @@ class Settings:
 
         if args.read_password:
             self.printer.info("Enter password: ", end="")
-            return getpass.getpass(prompt="")
+            return getpass(prompt="")
 
         if args.password:
             return args.password
