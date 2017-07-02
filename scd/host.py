@@ -1,17 +1,22 @@
 import socket
-import sys
 
 import paramiko
 
+from scd.config_deployer import DeploymentException
+from scd.host_status import HostStatus
+
 
 class Host:
-    def __init__(self, printer, settings):
+    def __init__(self, printer, settings, url):
         self.printer = printer
-        self.hostname = settings.hostname
         self.user = settings.user
         self.password = settings.password
         self.port = settings.port
         self.timeout = settings.timeout
+        self.url = url
+        self.name = self._get_host_name(url)
+        self.host_statuses = HostStatus()
+        self.status = self.host_statuses[self.name]
 
     def execute_command(self, command, exit_on_failure=True, echo_commands=True):
         def _execute_command(connection):
@@ -34,11 +39,22 @@ class Host:
     def send_file(self, file_from, file_to):
         def _send_file(connection):
             sftp = paramiko.SFTPClient.from_transport(connection.get_transport())
-            self.printer.info("Deploying file %s to %s:%s", file_from, self.hostname, file_to, verbose=True)
+            self.printer.info("Deploying file %s to %s:%s", file_from, self.url, file_to, verbose=True)
             sftp.put(file_from, file_to)
             sftp.close()
 
         return self._with_connection(_send_file)
+
+    def _get_host_name(self, url):
+        exit_code, output = self.execute_command("hostname", echo_commands=False)
+        if exit_code != 0:
+            self.printer.error("Could not get hostname of %s", url)
+            raise DeploymentException
+
+        name = output[0]
+        self.printer.info("Fetched hostname of %s: %s.", url, name, verbose=True)
+
+        return name
 
     @staticmethod
     def _get_commands(commands, exit_on_failure=True, echo_commands=True):
@@ -68,23 +84,23 @@ class Host:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            ssh.connect(self.hostname, username=self.user, password=self.password, port=self.port, timeout=self.timeout)
+            ssh.connect(self.url, username=self.user, password=self.password, port=self.port, timeout=self.timeout)
         except paramiko.ssh_exception.AuthenticationException:
             if self.password is None:
                 self.printer.error(
                     "Could not authenticate against %s. No password was provided. " +
-                    "Provide a password using the %s, %s or %s flags.", self.hostname, "-r", "-f", "-p"
+                    "Provide a password using the %s, %s or %s flags.", self.name, "-r", "-f", "-p"
                 )
             else:
                 self.printer.error("Permission denied.")
-            sys.exit(5)
+            raise DeploymentException
         except socket.timeout:
-            self.printer.error("Could not connect to %s, timed out after %s seconds.", self.hostname, self.timeout)
-            sys.exit(1)
+            self.printer.error("Could not connect to %s, timed out after %s seconds.", self.url, self.timeout)
+            raise DeploymentException
         except Exception as e:
-            self.printer.error("Could not connect to %s", self.hostname)
+            self.printer.error("Could not connect to %s", self.name)
             self.printer.error(str(e))
-            sys.exit(1)
+            raise DeploymentException
 
         return ssh
 

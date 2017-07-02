@@ -1,10 +1,13 @@
 import os
-import sys
 import textwrap
 import zipfile
 
 from scd.colors import *
 from scd.constants import *
+
+
+class DeploymentException(Exception):
+    pass
 
 
 class ConfigDeployer:
@@ -48,7 +51,8 @@ class ConfigDeployer:
         lines = textwrap.dedent(select_package_manager).strip().split("\n")
         lines += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(programs)]
         exit_code, output = self.host_communicator.execute_command(lines)
-        return self._result(exit_code, output,
+        self._handle_result(exit_code, output,
+                            lambda: self.printer.success("Successfully installed needed programs.", verbose=True),
                             lambda: self.printer.error("Failed to install programs."))
 
     def change_shell(self, shell):
@@ -60,7 +64,9 @@ class ConfigDeployer:
         command = ["sudo usermod -s $(which %s) %s" % (shell, user)]
 
         exit_code, output = self.host_communicator.execute_command(command)
-        return self._result(exit_code, output,
+        self._handle_result(exit_code, output,
+                            lambda: self.printer.success("Successfully changed default shell to %s for user %s.",
+                                                         shell, user, verbose=True),
                             lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
 
     def deploy_files(self, files):
@@ -81,19 +87,22 @@ class ConfigDeployer:
         ]
         exit_code, output = self.host_communicator.execute_command(commands)
 
-        return self._result(exit_code, output,
+        self._handle_result(exit_code, output,
+                            lambda: self.printer.success("Successfully deployed configuration files to host.",
+                                                         verbose=True),
                             lambda: self.printer.error("Failed to deploy configuration files to host."))
 
-    def _result(self, exit_code, lines, on_error):
+    def _handle_result(self, exit_code, lines, on__success, on_error):
         success = exit_code == 0
         if success:
             self.printer.info("Output:", verbose=True)
             self.printer.info([magenta(l) if l.startswith("+") else l for l in lines], verbose=True)
+            on__success()
         else:
-            on_error()
             self.printer.error("Exit code %s:", exit_code)
             self.printer.error([magenta(l) if l.startswith("+") else red(l) for l in lines])
-        return success
+            on_error()
+            raise DeploymentException
 
     def _create_zip(self, files):
         self.printer.info("Creating new zip file %s.", ZIP_PATH, verbose=True)
@@ -106,5 +115,5 @@ class ConfigDeployer:
             except PermissionError as e:
                 self.printer.error("Could not add %s to deployment zip file.", f)
                 self.printer.error("    " + str(e))
-                sys.exit(1)
+                raise DeploymentException
         zip_file.close()

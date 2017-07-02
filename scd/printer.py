@@ -14,12 +14,18 @@ class Printer:
 
         self._print(output, items, colors.empty_color, colors.magenta, end)
 
-    def success(self, output, *items, end="\n"):
+    def success(self, output, *items, verbose=False, end="\n"):
+        if not self.verbose_active and verbose:
+            return
+
         def green_bold(s): return colors.green(colors.bold(s))
 
         self._print(output, items, colors.green, green_bold, end)
 
-    def error(self, output, *items, end="\n"):
+    def error(self, output, *items, verbose=False, end="\n"):
+        if not self.verbose_active and verbose:
+            return
+
         def red_bold(s): return colors.red(colors.bold(s))
 
         self._print(output, items, colors.red, red_bold, end)

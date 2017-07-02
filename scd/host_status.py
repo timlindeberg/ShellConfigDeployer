@@ -26,11 +26,10 @@ class HostStatus:
         status["last_deployment"] = time_stamp
         return status
 
-    def update(self, settings, installed_programs=None, deployed_files=None, shell=None):
+    def update(self, settings, hostname, installed_programs=None, deployed_files=None, shell=None):
         if not (installed_programs or deployed_files or shell):
             return
 
-        hostname = settings.hostname
         status = self.status[hostname] if hostname in self.status else {}
         status["last_deployment"] = self._time_stamp_to_date(time.time())
 

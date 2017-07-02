@@ -40,7 +40,6 @@ class Settings:
         self.printer = Printer(False)
 
         self._check_config_file()
-        self.host_status = HostStatus()
         config = self._parse_config_file()
 
         colors.no_color = args.no_color or config.get("use_color") is False
@@ -79,8 +78,9 @@ class Settings:
                 sys.exit(1)
 
     def _clear_host_status(self, host):
-        if self.host_status.clear(host):
-            self.host_status.save()
+        host_status = HostStatus()
+        if host_status.clear(host):
+            host_status.save()
             self.printer.info("Cleared status of host %s.", host)
             sys.exit(0)
         else:
@@ -90,7 +90,7 @@ class Settings:
     def _print_host_status(self):
         self.printer.success("Host Status")
         self.printer.info("")
-        self._print_colored_json(self.host_status.status)
+        self._print_colored_json(HostStatus().status)
         sys.exit(0)
 
     def _print_config(self, config):
@@ -100,9 +100,9 @@ class Settings:
         sys.exit(0)
 
     def _parse_settings(self, args, config):
-        self.hostname = args.hostname or config.get("host") or self._error(
-            "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
-            SCD_CONFIG, '"host"'
+        self.hosts = args.hosts or config.get("hosts") or self._error(
+            "No host specified. Specify hosts either in %s under the attribute %s or as a command line argument.",
+            SCD_CONFIG, '"hosts"'
         )
 
         self.user = args.user or config.get("user") or self._error(
