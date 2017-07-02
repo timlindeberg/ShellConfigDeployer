@@ -20,7 +20,7 @@ be deployed. Example:
         ".oh-my-zsh",
         ".zshrc",
         ".gitconfig"
-    ]
+    ],
     "programs": [
         "unzip",
         "zsh",
@@ -43,7 +43,7 @@ to the server. It can not handle removal of files or programs.
 
 parser = argparse.ArgumentParser(prog="scd", description=prog_description,
                                  formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument("host", type=str, nargs="?",
+parser.add_argument("hostname", type=str, nargs="?",
                     help="the host to connect to")
 parser.add_argument("-P", "--port", dest="port", type=int,
                     help="the port to connect to (default 22)")

@@ -12,6 +12,8 @@ from scd.printer import Printer
 
 
 class Settings:
+    DEFAULT_PORT = 22
+    DEFAULT_TIMEOUT = 5
     DEFAULT_CONFIG = textwrap.dedent("""
     {
         "user": "",
@@ -94,7 +96,7 @@ class Settings:
         sys.exit(0)
 
     def _parse_settings(self, args, config):
-        self.host = args.host or config.get("host") or self._error(
+        self.hostname = args.hostname or config.get("host") or self._error(
             "No host specified. Specify host either in %s under the attribute %s or as a command line argument.",
             SCD_CONFIG, '"host"'
         )
@@ -117,7 +119,8 @@ class Settings:
 
         self.shell = config.get("shell")
         self.ignored_files = config.get("ignored_files") or []
-        self.port = args.port or config.get("port") or 22
+        self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
+        self.port = args.port or config.get("port") or self.DEFAULT_PORT
         self.verbose = args.verbose
         self.force = args.force
 

@@ -8,7 +8,7 @@ from pygments import highlight, lexers, formatters
 
 from scd.config_deployer import ConfigDeployer
 from scd.constants import *
-from scd.host_communicator import HostCommunicator
+from scd.host import Host
 from scd.printer import Printer
 from scd.settings import Settings
 
@@ -64,17 +64,29 @@ def _modified_files(settings, host_status, printer):
     return _modified_files.res
 
 
+def _get_host_name(printer, host_communicator, settings):
+    exit_code, output = host_communicator.execute_command("hostname", echo_commands=False)
+    if exit_code != 0:
+        printer.error("Could not get hostname of %s", settings.host)
+        sys.exit(1)
+
+    return output[0]
+
+
 def main():
-    sys.excepthook = _color_exceptions
+    # sys.excepthook = _color_exceptions
     signal.signal(signal.SIGINT, _sigint_handler)
 
     settings = Settings()
     printer = Printer(settings.verbose)
 
+    host = Host(printer, settings)
+    settings.hostname = _get_host_name(printer, host, settings)
+
     if settings.force:
         host_status = settings.host_status.initial_status()
     else:
-        host_status = settings.host_status[settings.host]
+        host_status = settings.host_status[settings.hostname]
 
     programs = set(settings.programs + ([settings.shell] if settings.shell else []))
     programs_to_install = [prog for prog in programs if prog not in host_status["installed_programs"]]
@@ -86,37 +98,37 @@ def main():
     printer.info("Found %s files to deploy and %s programs to install.",
                  len(files_to_deploy), len(programs_to_install), verbose=True)
 
-    deploy_config(printer, settings, programs_to_install, files_to_deploy, shell)
+    deploy_config(printer, settings, host, programs_to_install, files_to_deploy, shell)
 
 
-def deploy_config(printer, settings, programs, files, shell):
-    def on_error():
-        printer.error("%s", "Failed to deploy configuration.")
+def deploy_config(printer, settings, host, programs, files, shell):
+    def error():
+        printer.error("Failed to deploy configuration to %s.", settings.hostname)
         sys.exit(1)
 
     if not files and not programs and not shell:
-        printer.info("No changes to %s. Skipping deployment.", settings.host, verbose=True)
+        printer.info("No changes to %s. Skipping deployment.", settings.hostname, verbose=True)
         sys.exit(0)
 
-    host_communicator = HostCommunicator(printer, settings)
-    config_deployer = ConfigDeployer(printer, host_communicator)
+    config_deployer = ConfigDeployer(printer, host)
     host_status = settings.host_status
+
     if config_deployer.install_programs(programs):
         host_status.update(settings, installed_programs=settings.programs)
     else:
-        on_error()
+        error()
 
     if config_deployer.deploy_files(files):
         host_status.update(settings, deployed_files=settings.files)
     else:
-        on_error()
+        error()
 
     if config_deployer.change_shell(shell):
         host_status.update(settings, shell=shell)
     else:
-        on_error()
+        error()
 
-    printer.success("Configuration successfully deployed.")
+    printer.success("Configuration successfully deployed to %s.", settings.hostname)
 
 
 if __name__ == "__main__":

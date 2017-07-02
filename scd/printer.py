@@ -17,7 +17,7 @@ class Printer:
     def success(self, output, *items, end="\n"):
         def green_bold(s): return colors.green(colors.bold(s))
 
-        self._print(output, items, green_bold, green_bold, end)
+        self._print(output, items, colors.green, green_bold, end)
 
     def error(self, output, *items, end="\n"):
         def red_bold(s): return colors.red(colors.bold(s))

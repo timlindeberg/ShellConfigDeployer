@@ -30,8 +30,8 @@ class HostStatus:
         if not (installed_programs or deployed_files or shell):
             return
 
-        host = settings.host
-        status = self.status[host] if host in self.status else {}
+        hostname = settings.hostname
+        status = self.status[hostname] if hostname in self.status else {}
         status["last_deployment"] = self._time_stamp_to_date(time.time())
 
         programs = set(status.get("installed_programs") or [])
@@ -45,7 +45,7 @@ class HostStatus:
             status["shell"] = settings.shell
 
         status["installed_programs"] = list(programs)
-        self.status[host] = status
+        self.status[hostname] = status
         self.save()
 
     def clear(self, host):
