@@ -35,15 +35,15 @@ class Settings:
 
     def __init__(self):
         args = parser.parse_args()
-        colors.remove_color = args.no_color
+        colors.no_color = args.no_color
 
         self.printer = Printer(False)
 
         self._check_config_file()
         self.host_status = HostStatus()
         config = self._parse_config_file()
-        
-        colors.remove_color = args.no_color or config.get("use_color") is False
+
+        colors.no_color = args.no_color or config.get("use_color") is False
 
         if args.clear_status:
             self._clear_host_status(args.clear_status)
@@ -124,7 +124,7 @@ class Settings:
         self.shell = config.get("shell")
         self.ignored_files = config.get("ignored_files") or []
         self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
-        self.port = args.port or config.get("port") or self.DEFAULT_PORT
+        self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)
         self.verbose = args.verbose
         self.force = args.force
 
@@ -153,6 +153,7 @@ class Settings:
 
     def _print_colored_json(self, obj):
         formatted_json = json.dumps(obj, sort_keys=True, indent=4)
-        colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
-        for line in colorful_json.split("\n"):
+        if not colors.no_color:
+            formatted_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
+        for line in formatted_json.split("\n"):
             self.printer.info(line)

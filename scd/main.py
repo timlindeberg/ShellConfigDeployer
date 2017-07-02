@@ -6,6 +6,7 @@ import traceback
 
 from pygments import highlight, lexers, formatters
 
+from scd import colors
 from scd.config_deployer import ConfigDeployer
 from scd.constants import *
 from scd.host import Host
@@ -17,11 +18,14 @@ def _color_exceptions(type, value, tb):
     traceback_text = "".join(traceback.format_exception(type, value, tb))
     lexer = lexers.get_lexer_by_name("pytb", stripall=True)
     formatter = formatters.TerminalFormatter()
-    stack_trace = highlight(traceback_text, lexer, formatter).strip().split("\n")
+    if colors.no_color:
+        stack_trace = traceback_text
+    else:
+        stack_trace = highlight(traceback_text, lexer, formatter)
 
     printer = Printer()
     printer.error("An unknown error occurred:")
-    for line in stack_trace:
+    for line in stack_trace.strip().split("\n"):
         printer.info(line)
 
 
@@ -74,7 +78,7 @@ def _get_host_name(printer, host_communicator, settings):
 
 
 def main():
-    # sys.excepthook = _color_exceptions
+    sys.excepthook = _color_exceptions
     signal.signal(signal.SIGINT, _sigint_handler)
 
     settings = Settings()

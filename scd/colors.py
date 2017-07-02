@@ -10,13 +10,7 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
-remove_color = True
-
-
-def _color(c, s):
-    if remove_color:
-        return str(s)
-    return c + str(s) + CLEAR
+no_color = True
 
 
 def bold(s):
@@ -59,5 +53,9 @@ def white(s):
     return _color(WHITE, s)
 
 
-def no_color(s):
+def empty_color(s):
     return str(s)
+
+
+def _color(c, s):
+    return str(s) if no_color else c + str(s) + CLEAR

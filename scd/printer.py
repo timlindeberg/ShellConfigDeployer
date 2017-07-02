@@ -12,7 +12,7 @@ class Printer:
         if not self.verbose_active and verbose:
             return
 
-        self._print(output, items, colors.no_color, colors.magenta, end)
+        self._print(output, items, colors.empty_color, colors.magenta, end)
 
     def success(self, output, *items, end="\n"):
         def green_bold(s): return colors.green(colors.bold(s))
