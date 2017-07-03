@@ -92,14 +92,10 @@ class Settings:
             sys.exit(1)
 
     def _print_host_status(self):
-        self.printer.success("Host Status")
-        self.printer.info("")
         self._print_colored_json(HostStatus().status)
         sys.exit(0)
 
     def _print_config(self, config):
-        self.printer.success("Config")
-        self.printer.info("")
         self._print_colored_json(config)
         sys.exit(0)
 

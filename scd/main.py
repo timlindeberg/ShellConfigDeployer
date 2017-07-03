@@ -80,7 +80,7 @@ def _color_exceptions(type, value, tb):
 
 def _sigint_handler(signal, frame):
     print()  # since most terminals echo ^C
-    Printer().error("Received Ctrl+C, exiting...")
+    Printer().error("Received ^C, exiting...")
     sys.exit(0)
 
 
