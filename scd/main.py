@@ -6,6 +6,7 @@ from pygments import highlight, lexers, formatters
 
 from scd import colors
 from scd.config_deployer import ConfigDeployer, DeploymentException
+from scd.constants import *
 from scd.host import Host
 from scd.host_configuration import HostConfiguration
 from scd.host_status import HostStatus
@@ -21,11 +22,13 @@ def main():
     printer = Printer(settings.verbose)
 
     for host in settings.hosts:
-        printer.info("Making changes to %s.", host, verbose=True)
+        start = timer()
+        printer.info("Checking host %s.", host, verbose=True)
         printer.info("", verbose=True)
         try:
             if _deploy_config_to_host(printer, settings, host):
-                printer.success("Configuration successfully deployed to %s.", host)
+                time = get_time(start)
+                printer.success("Configuration successfully deployed to %s in %s s.", host, time)
         except DeploymentException:
             printer.error("Failed deploying configuration to %s.", host)
 

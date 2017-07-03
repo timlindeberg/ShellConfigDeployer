@@ -21,6 +21,8 @@ class ConfigDeployer:
         if len(programs) == 0:
             return
 
+        start = timer()
+
         self.printer.info("Installing " + ", ".join([magenta(p) for p in programs]))
 
         select_package_manager = """
@@ -51,8 +53,10 @@ class ConfigDeployer:
         lines = textwrap.dedent(select_package_manager).strip().split("\n")
         lines += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(programs)]
         exit_code, output = self.host.execute_command(lines)
+        time = get_time(start)
         self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully installed needed programs.", verbose=True),
+                            lambda: self.printer.success("Successfully installed needed programs in %s s.",
+                                                         time, verbose=True),
                             lambda: self.printer.error("Failed to install programs."))
         if exit_code != 0:
             raise DeploymentException
@@ -61,14 +65,17 @@ class ConfigDeployer:
         if not shell:
             return
 
+        start = timer()
         self.printer.info("Changing default shell to %s", shell)
         user = self.host.user
         command = ["sudo usermod -s $(which %s) %s" % (shell, user)]
 
         exit_code, output = self.host.execute_command(command)
+        time = get_time(start)
         self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully changed default shell to %s for user %s.",
-                                                         shell, user, verbose=True),
+                            lambda: self.printer.success("Successfully changed default shell to %s "
+                                                         "for user %s in %s s.",
+                                                         shell, user, time, verbose=True),
                             lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
         if exit_code != 0:
             raise DeploymentException
@@ -77,6 +84,7 @@ class ConfigDeployer:
         if len(files) == 0:
             return
 
+        start = timer()
         files_str = "file" if len(files) == 1 else "files"
         self.printer.info("Deploying %s " + files_str, len(files))
         if len(files) < self.MAX_FILES_TO_PRINT:
@@ -91,10 +99,11 @@ class ConfigDeployer:
             "rm %s" % ZIP_NAME
         ]
         exit_code, output = self.host.execute_command(commands)
-
+        time = get_time(start)
         self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully deployed %s configuration files to host.",
-                                                         len(files), verbose=True),
+                            lambda: self.printer.success("Successfully deployed %s configuration files to host "
+                                                         "in %s s.",
+                                                         len(files), time, verbose=True),
                             lambda: self.printer.error("Failed to deploy configuration files to host."))
         if exit_code != 0:
             raise DeploymentException
@@ -105,6 +114,8 @@ class ConfigDeployer:
 
         executed_scripts = []
         for script in scripts:
+            start = timer()
+
             self.printer.info("Executing script %s.", script)
             full_path = os.path.expanduser(script)
             if not os.path.isfile(full_path):
@@ -115,9 +126,11 @@ class ConfigDeployer:
                 script_content = [s for s in script_file.read().split("\n") if s]
 
             exit_code, output = self.host.execute_command(script_content, exit_on_failure=False)
+
+            time = get_time(start)
             self._handle_result(exit_code, output,
-                                lambda: self.printer.success("Successfully executed script %s on host %s.",
-                                                             script, self.host.name, verbose=True),
+                                lambda: self.printer.success("Successfully executed script %s on host %s in %s s.",
+                                                             script, self.host.name, time, verbose=True),
                                 lambda: self.printer.error("Failed executing script %s on host %s.", script,
                                                            self.host.name))
             if exit_code == 0:

@@ -48,6 +48,7 @@ class HostStatus:
         if scripts:
             status["executed_scripts"] = scripts
 
+        status["installed_programs"] = list(programs)
         self.status[hostname] = status
         self.save()
 
