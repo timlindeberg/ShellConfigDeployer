@@ -7,7 +7,7 @@ requirements = [i.strip() for i in open("requirements.txt").readlines()]
 
 setup(
     name='scd',
-    version='1.1',
+    version='1.2',
     license='MIT',
     description='A program to deploy your shell configuration to remote hosts.',
     long_description=long_description,
