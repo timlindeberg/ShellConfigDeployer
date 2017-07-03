@@ -11,14 +11,15 @@ class HostConfiguration:
         self.printer = printer
 
         self.programs = self._programs_to_install()
-        self.shell = self._shell_to_change()
         self.files = self._files_to_deploy()
+        self.scripts = self._scripts_to_run()
+        self.shell = self._shell_to_change()
 
-        printer.info("Found %s files to deploy and %s programs to install.",
-                     len(self.files), len(self.programs), verbose=True)
+        printer.info("Found %s files to deploy, %s programs to install and %s scripts to run.",
+                     len(self.files), len(self.programs), len(self.scripts), verbose=True)
 
     def is_empty(self):
-        return len(self.files) == 0 and len(self.programs) == 0 and not self.shell
+        return len(self.files) == 0 and len(self.programs) == 0 and len(self.scripts) == 0 and not self.shell
 
     def _programs_to_install(self):
         shell = self.settings.shell
@@ -26,12 +27,6 @@ class HostConfiguration:
         if shell:
             programs.add(shell)
         return [p for p in programs if p not in self.host_status["installed_programs"]]
-
-    def _shell_to_change(self):
-        shell = self.settings.shell
-        if self.host_status.get("shell") != shell:
-            return shell
-        return None
 
     def _files_to_deploy(self):
         files = set()
@@ -50,6 +45,14 @@ class HostConfiguration:
             self._add_files(from_, to, should_check_timestamp, files)
 
         return files
+
+    def _scripts_to_run(self):
+        scripts = self.settings.scripts
+        return [s for s in scripts if s not in self.host_status["executed_scripts"]]
+
+    def _shell_to_change(self):
+        shell = self.settings.shell
+        return shell if self.host_status.get("shell") != shell else None
 
     def _add_files(self, original_path, to, should_check_timestamp, files):
         def _files(file):

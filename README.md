@@ -36,7 +36,10 @@ server and what files should be deployed. Example:
     "programs": [
         "unzip",
         "tree"
-    ]
+    ],
+     "scripts": [
+         "~/init.sh"
+     ]
 }
 ```
 
@@ -47,7 +50,7 @@ and `.gitconfig` located in the users home folder and place them in
 as well as `.git` folders.
 
 It will also install `unzip`, `tree` and `zsh`and set `zsh` as the default 
-login shell for the user.
+login shell for the user and run the script `~/init.sh on the remote host.
 
 ##### NOTE:
 
@@ -110,9 +113,23 @@ This configuration will deploy the folder `~/.oh-my-zsh` to
 `/home/<USER>/.oh-my-zsh` on the remote host, `~/a.txt` to `/home/<USER>/b.txt`
 and `/a/b/c.txt` to `/c/b/a.txt`.
 
+##### "scripts"
+A list of scripts to execute on the remote host. Each entry should be an 
+absolute path to a file containing a script that can be executed on the remote
+host
+
+If a script executes successfully it won't be executed again. Since the 
+scripts are executed on the remote host they cannot access local files or
+environment variables and will instead be executed in the remote environment.
+If a script exits with an exit code other than 0 the execution will be
+considered a failure and `scd` will try to execute the script again on the
+subsequent run. Scripts should preferably be idempotent.
+
 ##### "ignored_files"
 Specifies a list of files and directories that will be ignored when looking
-for files to deploy.
+for files to deploy. The ignored files follow the same style as `.gitignore`.
+For example `*/.git/*` will ignore all files inside `.git` folders and
+ `*/.DS_Store` will ignore all `.DS_Store`files anywhere.
 
 ##### "user"
 Selects which user to authenticate against the host with. Can also be specified

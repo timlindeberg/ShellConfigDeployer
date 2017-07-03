@@ -12,7 +12,8 @@ class HostStatus:
         return {
             "last_deployment": "1970-01-01 01:00:00",  # time: 0
             "installed_programs": [],
-            "deployed_files": []
+            "deployed_files": [],
+            "executed_scripts": []
         }
 
     def __init__(self):
@@ -26,8 +27,8 @@ class HostStatus:
         status["last_deployment"] = time_stamp
         return status
 
-    def update(self, settings, hostname, installed_programs=None, deployed_files=None, shell=None):
-        if not (installed_programs or deployed_files or shell):
+    def update(self, hostname, installed_programs=None, deployed_files=None, shell=None, scripts=None):
+        if not (installed_programs or deployed_files or shell or scripts):
             return
 
         status = self.status[hostname] if hostname in self.status else {}
@@ -39,11 +40,12 @@ class HostStatus:
             programs.update(installed_programs)
         if deployed_files:
             status["deployed_files"] = [f[0] for f in deployed_files]
-        if settings.shell:
-            programs.add(settings.shell)
-            status["shell"] = settings.shell
+        if shell:
+            programs.add(shell)
+            status["shell"] = shell
+        if scripts:
+            status["executed_scripts"] = scripts
 
-        status["installed_programs"] = list(programs)
         self.status[hostname] = status
         self.save()
 

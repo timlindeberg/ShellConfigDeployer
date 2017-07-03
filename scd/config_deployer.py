@@ -54,6 +54,8 @@ class ConfigDeployer:
         self._handle_result(exit_code, output,
                             lambda: self.printer.success("Successfully installed needed programs.", verbose=True),
                             lambda: self.printer.error("Failed to install programs."))
+        if exit_code != 0:
+            raise DeploymentException
 
     def change_shell(self, shell):
         if not shell:
@@ -68,6 +70,8 @@ class ConfigDeployer:
                             lambda: self.printer.success("Successfully changed default shell to %s for user %s.",
                                                          shell, user, verbose=True),
                             lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
+        if exit_code != 0:
+            raise DeploymentException
 
     def deploy_files(self, files):
         if len(files) == 0:
@@ -89,13 +93,39 @@ class ConfigDeployer:
         exit_code, output = self.host.execute_command(commands)
 
         self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully deployed configuration files to host.",
-                                                         verbose=True),
+                            lambda: self.printer.success("Successfully deployed %s configuration files to host.",
+                                                         len(files), verbose=True),
                             lambda: self.printer.error("Failed to deploy configuration files to host."))
+        if exit_code != 0:
+            raise DeploymentException
+
+    def run_scripts(self, scripts):
+        if len(scripts) == 0:
+            return []
+
+        executed_scripts = []
+        for script in scripts:
+            self.printer.info("Executing script %s.", script)
+            full_path = os.path.expanduser(script)
+            if not os.path.isfile(full_path):
+                self.printer.error("Can't execute script %s, no such file.", script)
+                continue
+
+            with open(full_path) as script_file:
+                script_content = [s for s in script_file.read().split("\n") if s]
+
+            exit_code, output = self.host.execute_command(script_content, exit_on_failure=False)
+            self._handle_result(exit_code, output,
+                                lambda: self.printer.success("Successfully executed script %s on host %s.",
+                                                             script, self.host.name, verbose=True),
+                                lambda: self.printer.error("Failed executing script %s on host %s.", script,
+                                                           self.host.name))
+            if exit_code == 0:
+                executed_scripts.append(script)
+        return executed_scripts
 
     def _handle_result(self, exit_code, lines, on__success, on_error):
-        success = exit_code == 0
-        if success:
+        if exit_code == 0:
             self.printer.info("Output:", verbose=True)
             self.printer.info([magenta(l) if l.startswith("+") else l for l in lines], verbose=True)
             on__success()
@@ -103,7 +133,6 @@ class ConfigDeployer:
             self.printer.error("Exit code %s:", exit_code)
             self.printer.error([magenta(l) if l.startswith("+") else red(l) for l in lines])
             on_error()
-            raise DeploymentException
 
     def _create_zip(self, files):
         self.printer.info("Creating new zip file %s.", ZIP_PATH, verbose=True)

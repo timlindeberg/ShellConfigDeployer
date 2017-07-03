@@ -32,7 +32,8 @@ class Settings:
             "unzip",
             "tree",
             "zsh"
-        ]
+        ],
+        "scripts": []
     }
     """).strip()
 
@@ -116,6 +117,7 @@ class Settings:
         self.files = self._parse_files(config)
         self.programs = set(config.get("programs") or [])
         self.shell = config.get("shell")
+        self.scripts = config.get("scripts") or []
         self.ignored_files = config.get("ignored_files") or []
         self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
         self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)

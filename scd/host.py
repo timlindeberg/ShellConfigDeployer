@@ -101,7 +101,7 @@ class Host:
             raise DeploymentException
         except Exception as e:
             self.printer.error("Could not connect to %s", self.name)
-            self.printer.error(str(e))
+            self.printer.error("    " + str(e))
             raise DeploymentException
 
         return ssh

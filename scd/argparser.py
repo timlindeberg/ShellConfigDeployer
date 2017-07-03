@@ -26,6 +26,9 @@ be deployed. Example configuration:
     "programs": [
         "unzip",
         "tree"
+    ],
+    "scripts": [
+        "~/init.sh"
     ]
 }
 
@@ -34,8 +37,8 @@ This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
 to the remote host. my_settings.txt will be deployed as server_settings.txt.
 Any .gitignore and .DS_Store files will be ignored as well as .git folders.
 
-It will also install unzip, tree and zshand set zsh as the default login shell
-for the user.
+It will also install unzip, tree and zsh and set zsh as the default login shell
+for the user and run the script ~/init.sh on the remote host.
 
 SCD keeps track of which servers have correct shell configuration by keeping
 track of the time of deployment as well as a list of programs that have been

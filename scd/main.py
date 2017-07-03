@@ -49,13 +49,18 @@ def _deploy_configuration(printer, settings, host, configuration):
     host_status = host.host_statuses
 
     config_deployer.install_programs(configuration.programs)
-    host_status.update(settings, host.name, installed_programs=settings.programs)
+    host_status.update(host.name, installed_programs=settings.programs)
 
     config_deployer.deploy_files(configuration.files)
-    host_status.update(settings, host.name, deployed_files=settings.files)
+    host_status.update(host.name, deployed_files=settings.files)
 
     config_deployer.change_shell(configuration.shell)
-    host_status.update(settings, host.name, shell=configuration.shell)
+    host_status.update(host.name, shell=configuration.shell)
+
+    executed_scripts = config_deployer.run_scripts(configuration.scripts)
+    host_status.update(host.name, scripts=executed_scripts)
+    if len(configuration.scripts) != len(executed_scripts):
+        raise DeploymentException
 
 
 def _color_exceptions(type, value, tb):
