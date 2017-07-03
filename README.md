@@ -19,15 +19,19 @@ server and what files should be deployed. Example:
 ```json
 {
     "user": "vagrant",
+    "host": "127.0.0.1",
+    "port": 2222,
     "shell": "zsh",
     "ignored_files": [
-        ".git",
-        ".DS_Store"
+        "*/.gitignore",
+        "*/.git/*",
+        "*/.DS_Store"
     ],
     "files": [
-        ".oh-my-zsh",
-        ".zshrc",
-        ".gitconfig"
+        "~/.oh-my-zsh",
+        "~/.zshrc",
+        "~/.gitconfig",
+        ["~/my_settings.txt", "~/server_settings.txt"]
     ],
     "programs": [
         "unzip",
@@ -37,10 +41,13 @@ server and what files should be deployed. Example:
 ```
 
 This configuration will deploy the folder `.oh-my-zsh` and the files `.zshrc` 
-and `.gitconfig` placed in ~ on to the remote host and install `unzip` and 
-`tree`. It will ignore `.git` folders and `.DS_Store` files and sign on to the
-server using the user `vagrant`. It will also install `zsh` and use it as the 
-default login shell for the user.
+and `.gitconfig` located in the users home folder and place them in 
+`/home/<user>` on to the remote host. `my_settings.txt` will be deployed as 
+`server_settings.txt`. Any `.gitignore` and `.DS_Store` files will be ignored 
+as well as `.git` folders.
+
+It will also install `unzip`, `tree` and `zsh`and set `zsh` as the default 
+login shell for the user.
 
 ##### NOTE:
 
@@ -79,13 +86,29 @@ Specifies a list of programs to install on the remote host.
 
 ##### "files"
 Specifies a list of files and directories to deploy to the remote host. The
-files are relative to the home folder and will be deployed to the home folder
-of the selected user on the remote host. Example:
+paths specified are absolute and will be deployed to the same location on the
+host. `~` will expand to the home folder on the local host and to 
+`/home/<USER>` on the remote host. You can also specify the name of the file or
+folder on the remote host using either a dictionary or a list: 
 
-`"files": [ ".oh-my-zsh" ]`
+```json
+{
+    ...
+    "files": [ 
+        "~/.oh-my-zsh",
+        ["~/a.txt", "~/b.txt"],
+        {
+            "source_path": "/a/b/c.txt",
+            "host_path": "/c/b/a.txt"
+        }
+    ]
+    ...
+}
+```
 
-Will deploy the folder `~/.oh-my-zsh` to `/home/<USER>/.oh-my-zsh` on the
-remote host.
+This configuration will deploy the folder `~/.oh-my-zsh` to 
+`/home/<USER>/.oh-my-zsh` on the remote host, `~/a.txt` to `/home/<USER>/b.txt`
+and `/a/b/c.txt` to `/c/b/a.txt`.
 
 ##### "ignored_files"
 Specifies a list of files and directories that will be ignored when looking

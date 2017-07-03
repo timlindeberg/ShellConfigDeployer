@@ -19,16 +19,19 @@ class Settings:
     {
         "user": "",
         "ignored_files": [
-            ".git",
-            ".DS_Store"
+            "*/.git/*",
+            "*/.gitignore",
+            "*/.DS_Store"
         ],
         "files": [
-            ".oh-my-zsh",
-            ".zshrc"
+            "~/.oh-my-zsh",
+            "~/.zshrc",
+            ["~/.zshrc-extra-server", "~/.zshrc-extra"] 
         ],
         "programs": [
             "unzip",
-            "tree"
+            "tree",
+            "zsh"
         ]
     }
     """).strip()
@@ -110,17 +113,8 @@ class Settings:
             SCD_CONFIG, '"user"', "--user", "-u"
         )
 
-        self.files = config.get("files") or self._error(
-            "Which files to deploy are not specified. Specify which files to deploy in %s under the attribute %s.",
-            SCD_CONFIG, '"files"'
-        )
-
-        self.programs = config.get("programs") or self._error(
-            "Which programs to install are not specified. " +
-            "Specify which programs to install in %s under the attribute %s.",
-            SCD_CONFIG, '"programs"'
-        )
-
+        self.files = self._parse_files(config)
+        self.programs = set(config.get("programs") or [])
         self.shell = config.get("shell")
         self.ignored_files = config.get("ignored_files") or []
         self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
@@ -129,6 +123,34 @@ class Settings:
         self.force = args.force
 
         self.password = self._get_password(args)
+
+    def _parse_files(self, config):
+        files = config.get("files")
+        if not files:
+            return []
+
+        def _parse_file(file):
+            if type(file) is dict:
+                if not (len(file) == 2 and "source_path" in file and "host_path" in file):
+                    self.printer.error("Invalid file: %s. Dict items in file should contain two elements, "
+                                       "source_path and the host_path.", file)
+                    sys.exit(1)
+
+                return file["source_path"], file["host_path"]
+            elif type(file) is list:
+                if len(file) != 2:
+                    self.printer.error("Invalid file: %s. List items in file should contain two elements, "
+                                       "the source path and the host path.", file)
+                    sys.exit(1)
+
+                return file[0], file[1]
+            elif type(file) is str:
+                return file, file
+            else:
+                self.printer.error("Invalid file: %s. Expected a string, dict or a list.", file)
+                sys.exit(1)
+
+        return [_parse_file(file) for file in files]
 
     def _get_password(self, args):
         password_file = args.password_file

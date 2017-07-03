@@ -2,38 +2,40 @@ import argparse
 
 from scd.constants import *
 
-prog_description = """
+DESCRIPTION = """
 Deploys shell configuration to remote servers. Use ~/.scd/config to specify
 what programs should be installed on the remote server and what files should
-be deployed. Example:
+be deployed. Example configuration:
+
 {
     "user": "vagrant",
-    "install_method": "apt-get",
     "host": "127.0.0.1",
     "port": 2222,
+    "shell": "zsh",
     "ignored_files": [
-        ".gitignore",
-        ".git",
-        ".DS_Store"
+        "*/.gitignore",
+        "*/.git/*",
+        "*/.DS_Store"
     ],
     "files": [
-        ".oh-my-zsh",
-        ".zshrc",
-        ".gitconfig"
+        "~/.oh-my-zsh",
+        "~/.zshrc",
+        "~/.gitconfig",
+        ["~/my_settings.txt", "~/server_settings.txt"]
     ],
     "programs": [
         "unzip",
-        "zsh",
         "tree"
     ]
 }
 
 This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
-.gitconfig placed in ~ on to the remote server and install zsh and tree.
-It will ignore .git folders and .DS_Store files and sign on to the server using
-the user 'vagrant' and install programs using apt-get. Server and port can be
-specified in the configuration but is normally given as a command line
-argument.
+.gitconfig located in the users home folder and place them in /home/<user> on
+to the remote host. my_settings.txt will be deployed as server_settings.txt.
+Any .gitignore and .DS_Store files will be ignored as well as .git folders.
+
+It will also install unzip, tree and zshand set zsh as the default login shell
+for the user.
 
 SCD keeps track of which servers have correct shell configuration by keeping
 track of the time of deployment as well as a list of programs that have been
@@ -41,7 +43,7 @@ installed. Any files that have since changed or been added will be redeployed
 to the server. It can not handle removal of files or programs.
 """
 
-parser = argparse.ArgumentParser(prog="scd", description=prog_description,
+parser = argparse.ArgumentParser(prog="scd", description=DESCRIPTION,
                                  formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("hosts", type=str, nargs="*",
                     help="the hosts to deploy configuration to")

@@ -1,18 +1,18 @@
+import os
 import os.path
 import sys
 from fnmatch import fnmatch
 
-from scd.constants import *
-
 
 class HostConfiguration:
     def __init__(self, printer, settings, host_status):
-        self.files = self._modified_files(settings, host_status, printer)
-        programs = set(settings.programs + ([settings.shell] if settings.shell else []))
-        self.programs = [prog for prog in programs if prog not in host_status["installed_programs"]]
-        self.shell = settings.shell
-        if host_status.get("shell") == self.shell:
-            self.shell = None
+        self.settings = settings
+        self.host_status = host_status
+        self.printer = printer
+
+        self.programs = self._programs_to_install()
+        self.shell = self._shell_to_change()
+        self.files = self._files_to_deploy()
 
         printer.info("Found %s files to deploy and %s programs to install.",
                      len(self.files), len(self.programs), verbose=True)
@@ -20,37 +20,57 @@ class HostConfiguration:
     def is_empty(self):
         return len(self.files) == 0 and len(self.programs) == 0 and not self.shell
 
-    @staticmethod
-    def _modified_files(settings, host_status, printer):
-        HostConfiguration._modified_files.res = []
+    def _programs_to_install(self):
+        shell = self.settings.shell
+        programs = set(self.settings.programs)
+        if shell:
+            programs.add(shell)
+        return [p for p in programs if p not in self.host_status["installed_programs"]]
 
-        last_deployment = host_status["last_deployment"]
+    def _shell_to_change(self):
+        shell = self.settings.shell
+        if self.host_status.get("shell") != shell:
+            return shell
+        return None
 
-        def modified(file, check_timestamp):
-            for ignored in settings.ignored_files:
+    def _files_to_deploy(self):
+        files = set()
+
+        for from_, to in self.settings.files:
+            should_check_timestamp = from_ in self.host_status["deployed_files"]
+            from_ = os.path.expanduser(from_)
+            to = self._expand_remote_user(to)
+
+            if not (os.path.isfile(from_) or os.path.isdir(from_)):
+                self.printer.error("No such file or directory %s.", from_)
+                sys.exit(1)
+
+            msg = "Checking timestamp of %s." if should_check_timestamp else "Adding new item %s."
+            self.printer.info(msg, from_, verbose=True)
+            self._add_files(from_, to, should_check_timestamp, files)
+
+        return files
+
+    def _add_files(self, original_path, to, should_check_timestamp, files):
+        def _files(file):
+            for ignored in self.settings.ignored_files:
                 if fnmatch(file, ignored):
                     return
+
             if os.path.isdir(file):
                 for f in os.listdir(file):
-                    modified(file + "/" + f, check_timestamp)
+                    _files(file + "/" + f)
                 return
 
-            if not check_timestamp or os.path.getctime(file) > last_deployment:
-                modified.res.append(os.path.abspath(file))
+            if not should_check_timestamp or os.path.getctime(file) > self.host_status["last_deployment"]:
+                path = os.path.abspath(file)
+                path_to = path.replace(original_path, to)
+                files.add((path, path_to))
 
-        modified.res = []
+        _files(original_path)
 
-        for f in settings.files:
-            file = HOME + "/" + f
-            if not (os.path.isfile(file) or os.path.isdir(file)):
-                printer.error("No such file or directory %s.", file)
-                sys.exit(1)
-            check_timestamp = f in host_status["deployed_files"]
-            if check_timestamp:
-                printer.info("Checking timestamp of %s", f, verbose=True)
-            else:
-                printer.info("Adding new item %s", f, verbose=True)
-
-            modified(file, check_timestamp)
-
-        return modified.res
+    def _expand_remote_user(self, path):
+        if not path.startswith("~"):
+            return path
+        user = self.settings.user
+        return f"/home/{user}" + path[1:]

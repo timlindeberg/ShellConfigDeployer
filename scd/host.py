@@ -14,6 +14,8 @@ class Host:
         self.port = settings.port
         self.timeout = settings.timeout
         self.url = url
+
+        self.name = url  # To display in error message if we're unable to resolve the hostname
         self.name = self._get_host_name(url)
         self.host_statuses = HostStatus()
         self.status = self.host_statuses[self.name]
@@ -67,7 +69,7 @@ class Host:
         else:
             c = []
 
-        if type(commands) == str:
+        if type(commands) is str:
             c.append(commands)
         else:
             c += commands
@@ -88,7 +90,7 @@ class Host:
         except paramiko.ssh_exception.AuthenticationException:
             if self.password is None:
                 self.printer.error(
-                    "Could not authenticate against %s. No password was provided. " +
+                    "Could not authenticate against %s. No password was provided. "
                     "Provide a password using the %s, %s or %s flags.", self.name, "-r", "-f", "-p"
                 )
             else:

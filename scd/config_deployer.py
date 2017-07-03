@@ -13,13 +13,13 @@ class DeploymentException(Exception):
 class ConfigDeployer:
     MAX_FILES_TO_PRINT = 10
 
-    def __init__(self, printer, host_communicator):
+    def __init__(self, printer, host):
         self.printer = printer
-        self.host_communicator = host_communicator
+        self.host = host
 
     def install_programs(self, programs):
         if len(programs) == 0:
-            return True
+            return
 
         self.printer.info("Installing " + ", ".join([magenta(p) for p in programs]))
 
@@ -50,20 +50,20 @@ class ConfigDeployer:
 
         lines = textwrap.dedent(select_package_manager).strip().split("\n")
         lines += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(programs)]
-        exit_code, output = self.host_communicator.execute_command(lines)
+        exit_code, output = self.host.execute_command(lines)
         self._handle_result(exit_code, output,
                             lambda: self.printer.success("Successfully installed needed programs.", verbose=True),
                             lambda: self.printer.error("Failed to install programs."))
 
     def change_shell(self, shell):
         if not shell:
-            return True
+            return
 
         self.printer.info("Changing default shell to %s", shell)
-        user = self.host_communicator.user
+        user = self.host.user
         command = ["sudo usermod -s $(which %s) %s" % (shell, user)]
 
-        exit_code, output = self.host_communicator.execute_command(command)
+        exit_code, output = self.host.execute_command(command)
         self._handle_result(exit_code, output,
                             lambda: self.printer.success("Successfully changed default shell to %s for user %s.",
                                                          shell, user, verbose=True),
@@ -71,21 +71,22 @@ class ConfigDeployer:
 
     def deploy_files(self, files):
         if len(files) == 0:
-            return True
+            return
 
-        self.printer.info("Deploying %s file(s)", len(files))
+        files_str = "file" if len(files) == 1 else "files"
+        self.printer.info("Deploying %s " + files_str, len(files))
         if len(files) < self.MAX_FILES_TO_PRINT:
-            self.printer.info([magenta(f) for f in files])
+            self.printer.info([magenta(f[0]) for f in files])
         self._create_zip(files)
-        home = "/home/%s" % self.host_communicator.user
-        self.host_communicator.send_file(ZIP_PATH, "%s/%s" % (home, ZIP_NAME))
+        home = "/home/%s" % self.host.user
+        self.host.send_file(ZIP_PATH, "%s/%s" % (home, ZIP_NAME))
         os.remove(ZIP_PATH)
         commands = [
             "cd %s" % home,
-            "unzip -q -o ./%s" % ZIP_NAME,
+            "sudo unzip -q -o -d / ./%s" % ZIP_NAME,
             "rm %s" % ZIP_NAME
         ]
-        exit_code, output = self.host_communicator.execute_command(commands)
+        exit_code, output = self.host.execute_command(commands)
 
         self._handle_result(exit_code, output,
                             lambda: self.printer.success("Successfully deployed configuration files to host.",
@@ -106,14 +107,12 @@ class ConfigDeployer:
 
     def _create_zip(self, files):
         self.printer.info("Creating new zip file %s.", ZIP_PATH, verbose=True)
-        home = HOME + "/"
         zip_file = zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED)
-        for f in files:
-            arcname = f if not f.startswith(home) else f[len(home):]
+        for from_, to in files:
             try:
-                zip_file.write(f, arcname=arcname)
+                zip_file.write(from_, arcname=to)
             except PermissionError as e:
-                self.printer.error("Could not add %s to deployment zip file.", f)
+                self.printer.error("Could not add %s to deployment zip file.", from_)
                 self.printer.error("    " + str(e))
                 raise DeploymentException
         zip_file.close()

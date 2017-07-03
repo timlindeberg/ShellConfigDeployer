@@ -38,7 +38,7 @@ class HostStatus:
         if installed_programs:
             programs.update(installed_programs)
         if deployed_files:
-            status["deployed_files"] = deployed_files
+            status["deployed_files"] = [f[0] for f in deployed_files]
         if settings.shell:
             programs.add(settings.shell)
             status["shell"] = settings.shell
