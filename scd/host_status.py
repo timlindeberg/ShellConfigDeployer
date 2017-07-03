@@ -18,6 +18,8 @@ class HostStatus:
 
     def __init__(self):
         self.status = self._read_host_status()
+        if not self.status.get("_host_mappings"):
+            self.status["_host_mappings"] = {}
 
     def __getitem__(self, host):
         if host not in self.status:
@@ -48,6 +50,13 @@ class HostStatus:
 
         self.status[hostname] = status
         self.save()
+
+    def add_host_mapping(self, url, name):
+        self.status["_host_mappings"][url] = name
+        self.save()
+
+    def get_host_name(self, url):
+        return self.status["_host_mappings"].get(url)
 
     def clear(self, host):
         if self.status.get(host):

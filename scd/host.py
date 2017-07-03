@@ -16,8 +16,8 @@ class Host:
         self.url = url
 
         self.name = url  # To display in error message if we're unable to resolve the hostname
-        self.name = self._get_host_name(url)
         self.host_statuses = HostStatus()
+        self.name = self._get_host_name(self.host_statuses, url)
         self.status = self.host_statuses[self.name]
 
     def execute_command(self, command, exit_on_failure=True, echo_commands=True):
@@ -47,15 +47,20 @@ class Host:
 
         return self._with_connection(_send_file)
 
-    def _get_host_name(self, url):
+    def _get_host_name(self, host_statues, url):
+        name = host_statues.get_host_name(url)
+        if name:
+            self.printer.info("Fetched hostname of %s from host mappings: %s.", url, name, verbose=True)
+            return name
+
         exit_code, output = self.execute_command("hostname", echo_commands=False)
         if exit_code != 0:
             self.printer.error("Could not get hostname of %s", url)
             raise DeploymentException
 
         name = output[0]
-        self.printer.info("Fetched hostname of %s: %s.", url, name, verbose=True)
-
+        self.printer.info("Fetched hostname of %s from host: %s.", url, name, verbose=True)
+        host_statues.add_host_mapping(url, name)
         return name
 
     @staticmethod
