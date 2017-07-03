@@ -58,9 +58,13 @@ class HostStatus:
     def get_host_name(self, url):
         return self.status["_host_mappings"].get(url)
 
-    def clear(self, host):
-        if self.status.get(host):
-            del self.status[host]
+    def clear(self, url):
+        name = self.get_host_name(url)
+        if name and name in self.status:
+            del self.status[name]
+            return True
+        if url in self.status:
+            del self.status[url]
             return True
         return False
 
