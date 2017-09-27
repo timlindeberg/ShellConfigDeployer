@@ -62,7 +62,7 @@ while [ $TRIES -le $MAX_TRIES ]; do
 
     # The -t $SHELL part is a workaround used when chsh can't be used
     # Uses -R to open a tunnel so for instance rmate can be used
-	sshpass -f $TMP_FILE ssh -R 52698:localhost:52698 -p 2222 "$USER@$SERVER" -t $SHELL
+	sshpass -f $TMP_FILE ssh -R 52698:localhost:52698 "$USER@$SERVER" -t $SHELL
 	if [ "$?" -eq '5' ]; then
 		let TRIES=TRIES+1
 		continue
