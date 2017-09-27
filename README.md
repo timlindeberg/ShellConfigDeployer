@@ -10,7 +10,7 @@ have been installed. Any files that have since changed or been added will be
 redeployed to the server. It can not handle removal of files or programs.
 
 ## Usage
-Use `scd on the command line to deploy your configuration to the desired host:
+Use `scd` on the command line to deploy your configuration to the desired host:
 
 `scd -u vagrant -p vagrant -P 2222 127.0.0.1`
 
@@ -50,7 +50,7 @@ and `.gitconfig` located in the users home folder and place them in
 as well as `.git` folders.
 
 It will also install `unzip`, `tree` and `zsh`and set `zsh` as the default 
-login shell for the user and run the script `~/init.sh on the remote host.
+login shell for the user and run the script `~/init.sh` on the remote host.
 
 ##### NOTE:
 
@@ -75,7 +75,7 @@ python3 setup.py install
 * You can now use `scd` on the command line. When running it for the first
 time a default configuration will be created. 
 
-* Edit the configuration file (`~/.scd/config) with your settings
+* Edit the configuration file (`~/.scd/config`) with your settings
 
 ## Configuration options
 
@@ -121,7 +121,7 @@ host
 If a script executes successfully it won't be executed again. Since the 
 scripts are executed on the remote host they cannot access local files or
 environment variables and will instead be executed in the remote environment.
-If a script exits with an exit code other than 0 the execution will be
+If a script exits with an exit code other than `0` the execution will be
 considered a failure and `scd` will try to execute the script again on the
 subsequent run. Scripts should preferably be idempotent.
 
