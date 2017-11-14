@@ -47,25 +47,15 @@ if [ -z "$SERVER" ]; then
 	exit 1
 fi
 
-MAX_TRIES=3
-TRIES=0
-while [ $TRIES -le $MAX_TRIES ]; do
-	read -s -p "Password:" PASSWORD
-	echo
-	echo $PASSWORD > $TMP_FILE
+# Send SSH key
+ssh-copy-id "$USER@$SERVER" > /dev/null 2>&1
 
-	scd -f $TMP_FILE $SERVER
-	if [ "$?" -eq '5' ]; then
-		let TRIES=TRIES+1
-		continue
-	fi
+# Deploy config
+scd $SERVER
+if [ "$?" != '0' ]; then
+	exit 1
+fi
 
-    # The -t $SHELL part is a workaround used when chsh can't be used
-    # Uses -R to open a tunnel so for instance rmate can be used
-	sshpass -f $TMP_FILE ssh -R 52698:localhost:52698 "$USER@$SERVER" -t $SHELL
-	if [ "$?" -eq '5' ]; then
-		let TRIES=TRIES+1
-		continue
-	fi
-	break
-done
+# The -t $SHELL part is a workaround used when chsh can't be used
+# Uses -R to open a tunnel so for instance rmate can be used
+ssh -R 52698:localhost:52698 "$USER@$SERVER" -t $SHELL
