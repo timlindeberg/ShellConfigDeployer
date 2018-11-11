@@ -2,20 +2,15 @@
 
 # This is an example of how scd can be used to automatically deploy
 # an up to date version of your config before sshing in to the server.
-# Typing sshops <host> and the password will make sure that the
-# configuration on the host is up to date and then ssh in to the machine.
+# Typing sshops <host>  will make sure that the configuration on the host
+# is up to date and then ssh in to the machine. It will also start a ssh
+# tunnel on port 52698 to allow editing of files using rmate.
 
-TMP_FILE="/tmp/tmp.txt"
 DEFAULT_SHELL="zsh"
 
-function cleanup() {
-	rm $TMP_FILE > /dev/null 2>&1
-}
-
 set -e
-trap cleanup EXIT
 
-DEPENDENCIES=(sshpass jq)
+DEPENDENCIES=(jq)
 for PROGRAM in ${DEPENDENCIES[*]}; do
     if ! command -v $PROGRAM >/dev/null 2>&1; then
 	    echo "sshops requires $PROGRAM. Install it using a package manager e.g. 'brew install $PROGRAM'."
@@ -40,6 +35,12 @@ if [ "$SHELL" == "null" ]; then
     SHELL=$DEFAULT_SHELL
 fi
 
+PRIVATE_KEY=$(cat $CONFIG_FILE | jq -r .private_key)
+if [ "$PRIVATE_KEY" == "null" ]; then
+	echo "No private key specified in $CONFIG_FILE."
+	exit 1
+fi
+
 SERVER=$1
 
 if [ -z "$SERVER" ]; then
@@ -47,15 +48,10 @@ if [ -z "$SERVER" ]; then
 	exit 1
 fi
 
-# Send SSH key
-ssh-copy-id "$USER@$SERVER" > /dev/null 2>&1
 
-# Deploy config
 scd $SERVER
 if [ "$?" != '0' ]; then
-	exit 1
+    exit 1
 fi
 
-# The -t $SHELL part is a workaround used when chsh can't be used
-# Uses -R to open a tunnel so for instance rmate can be used
-ssh -R 52698:localhost:52698 "$USER@$SERVER" -t $SHELL
+ssh -i $PRIVATE_KEY -R 52698:localhost:52698 "$USER@$SERVER"

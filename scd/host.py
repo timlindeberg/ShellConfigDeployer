@@ -1,6 +1,7 @@
 import socket
 
 import paramiko
+import os.path
 
 from scd.config_deployer import DeploymentException
 from scd.host_status import HostStatus
@@ -13,6 +14,7 @@ class Host:
         self.password = settings.password
         self.port = settings.port
         self.timeout = settings.timeout
+        self.private_key = settings.private_key
         self.url = url
 
         self.name = url  # To display in error message if we're unable to resolve the hostname
@@ -89,9 +91,13 @@ class Host:
     def _connect(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        pkey = None
+        if self.private_key:
+            path = os.path.expanduser(self.private_key)
+            pkey = paramiko.RSAKey.from_private_key_file(path)
 
         try:
-            ssh.connect(self.url, username=self.user, password=self.password, port=self.port, timeout=self.timeout)
+            ssh.connect(self.url, username=self.user, password=self.password, port=self.port, timeout=self.timeout, pkey=pkey)
         except paramiko.ssh_exception.AuthenticationException:
             if self.password is None:
                 self.printer.error(

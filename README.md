@@ -22,6 +22,7 @@ server and what files should be deployed. Example:
     "host": "127.0.0.1",
     "port": 2222,
     "shell": "zsh",
+    "private_key": "~/my_key.pem",
     "ignored_files": [
         "*/.gitignore",
         "*/.git/*",
@@ -145,6 +146,11 @@ specify it in the config file.
 Selects which port to connect through. Can also be specified using the flags 
 `--port` (`-P`). Defaults to 22.
 
+##### "private_key"
+Path to a private key to use when connecting to servers. Can also be specified
+using the flags `--private_key` (`-i`). If not specified, no private will be
+used.
+
 ## Flags
 
 ##### --help
@@ -165,6 +171,10 @@ the `-p` flag since otherwise the password can be seen by other processes.
 Specify the password to use for authentication. It is better to use the `-f` flag
 to specify password since otherwise the password can be seen by other processes.
 Only use this for testing or if you don't care about security.
+
+#### --private_key (-i) PRIVATE_KEY
+Specifies a path to a private key to use when connecting to servers. Similar to
+the `-i` flag of the `ssh` command.
 
 ##### --verbose (-v)
 Prints additional information.

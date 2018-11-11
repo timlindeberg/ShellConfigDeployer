@@ -18,6 +18,7 @@ class Settings:
     DEFAULT_CONFIG = textwrap.dedent("""
     {
         "user": "",
+        "private_key": "~/my_key.pem",
         "ignored_files": [
             "*/.git/*",
             "*/.gitignore",
@@ -52,7 +53,7 @@ class Settings:
             self._clear_host_status(args.clear_status)
 
         if args.print_host_status:
-            self._print_host_status()
+            self._print_host_status(args.print_host_status)
 
         if args.print_config:
             self._print_config(config)
@@ -91,8 +92,20 @@ class Settings:
             self.printer.error("Host status file does not contain host %s.", host)
             sys.exit(1)
 
-    def _print_host_status(self):
-        self._print_colored_json(HostStatus().status)
+    def _print_host_status(self, host_to_print):
+        host_status = HostStatus()
+        status = host_status.status
+        if host_to_print == "all":
+            self._print_colored_json(status)
+        elif host_to_print in status:
+            self._print_colored_json(status[host_to_print])
+        else:
+            host_name = host_status.get_host_name(host_to_print)
+            if host_name not in host_status.status:
+                self.printer.error("No status saved for host %s.", host_to_print)
+                sys.exit(1)
+
+            self._print_colored_json(host_status.status[host_name])
         sys.exit(0)
 
     def _print_config(self, config):
@@ -119,6 +132,7 @@ class Settings:
         self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)
         self.verbose = args.verbose
         self.force = args.force
+        self.private_key = args.private_key or config.get("private_key")
 
         self.password = self._get_password(args)
 
