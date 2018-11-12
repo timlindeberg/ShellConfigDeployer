@@ -91,10 +91,7 @@ class Host:
     def _connect(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        pkey = None
-        if self.private_key:
-            path = os.path.expanduser(self.private_key)
-            pkey = paramiko.RSAKey.from_private_key_file(path)
+        pkey = self._get_private_key()
 
         try:
             ssh.connect(self.url, username=self.user, password=self.password, port=self.port, timeout=self.timeout, pkey=pkey)
@@ -116,6 +113,21 @@ class Host:
             raise DeploymentException
 
         return ssh
+
+
+    def _get_private_key(self):
+        if not self.private_key:
+            return None
+
+        path = os.path.expanduser(self.private_key)
+        try:
+            return paramiko.RSAKey.from_private_key_file(path, password=self.password)
+        except paramiko.ssh_exception.PasswordRequiredException:
+            self.printer.error("Private key %s required a password but none was provided", self.private_key)
+            raise DeploymentException
+        except paramiko.ssh_exception.SSHException:
+            self.printer.error("Could not read private key %s", self.private_key)
+            raise DeploymentException
 
     @staticmethod
     def _read_output(source):
