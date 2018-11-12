@@ -159,22 +159,26 @@ Prints a help message and exits.
 ##### --port (-P) PORT
 Specifies which port to connect to, defaults to 22.
 
+#### --private_key (-i) PRIVATE_KEY
+Specifies a path to a private key to use when connecting to servers. Similar to
+the `-i` flag of the `ssh` command.
+
 ##### --read-password (-r)
-Reads the password from user input.
+Reads the password from user input. If combined with the `--private-key` flag 
+the password will be used to decrypt the private key.
 
 ##### --password-file (-f) PATH
 Specifies a path to a file containing the password to use when authenticating 
 against the host. This is preferable to passing a password directly using
 the `-p` flag since otherwise the password can be seen by other processes.
+If combined with the `--private-key` flag the password will be used to decrypt
+the private key.
 
 ##### --password (-p) PASSWORD
 Specify the password to use for authentication. It is better to use the `-f` flag
 to specify password since otherwise the password can be seen by other processes.
-Only use this for testing or if you don't care about security.
-
-#### --private_key (-i) PRIVATE_KEY
-Specifies a path to a private key to use when connecting to servers. Similar to
-the `-i` flag of the `ssh` command.
+Only use this for testing or if you don't care about security. If combined with
+the `--private-key` flag the password will be used to decrypt the private key.
 
 ##### --verbose (-v)
 Prints additional information.
