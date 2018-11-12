@@ -12,6 +12,7 @@ be deployed. Example configuration:
     "host": "127.0.0.1",
     "port": 2222,
     "shell": "zsh",
+    "private_key": "~/my_key.pem",
     "ignored_files": [
         "*/.gitignore",
         "*/.git/*",

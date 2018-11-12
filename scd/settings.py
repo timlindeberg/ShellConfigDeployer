@@ -18,7 +18,7 @@ class Settings:
     DEFAULT_CONFIG = textwrap.dedent("""
     {
         "user": "",
-        "private_key": "~/my_key.pem",
+        "private_key": "",
         "ignored_files": [
             "*/.git/*",
             "*/.gitignore",
@@ -26,8 +26,7 @@ class Settings:
         ],
         "files": [
             "~/.oh-my-zsh",
-            "~/.zshrc",
-            ["~/.zshrc-extra-server", "~/.zshrc-extra"] 
+            "~/.zshrc"
         ],
         "programs": [
             "unzip",
@@ -132,7 +131,7 @@ class Settings:
         self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)
         self.verbose = args.verbose
         self.force = args.force
-        self.private_key = args.private_key or config.get("private_key")
+        self.private_key = args.private_key or config.get("private_key") or None
 
         self.password = self._get_password(args)
 
