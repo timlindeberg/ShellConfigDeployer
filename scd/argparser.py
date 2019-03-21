@@ -8,10 +8,8 @@ def _read_description():
     with open("README.md", 'r') as f:
         description = f.read()
 
-    # Hack to remove single new lines from README
-    description = description.split('##')[0]
-    description = description.replace('\n\n', '\n\n\n')
-    description = re.sub(r'\n([^\n])', '\\1', description)
+    description = description.split('## Installation')[0]
+    description = re.sub(r'```(.*)', '', description)
     return description
 
 

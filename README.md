@@ -1,13 +1,13 @@
-# Shell Configuration Deployer (SCD)
+# Shell Configuration Deployer (`scd`)
 
-A program used to deploy shell configuration to remote hosts. The program can 
-be used to automatically deploy your shell configuration to remote hosts before 
-sshing in to them. This way you can always use your desired shell configuration 
-no matter where you are. See `bin/sshops` for an example of how it can be used.
+A program used to deploy shell configuration to remote hosts. The program can
+be used to automatically deploy your shell configuration to remote hosts before
+sshing in to them. This way you can always use your desired shell configuration
+no matter where you are.
 
-SCD keeps track of which servers have correct shell configuration by keeping 
-track of the time of deployment as well as a list of programs and files that 
-have been installed. Any files that have since changed or been added will be 
+`scd` keeps track of which servers have correct shell configuration by keeping 
+track of the time of deployment as well as a list of programs and files that
+have been installed. Any files that have since changed or been added will be
 redeployed to the server. It can not handle removal of files or programs.
 
 ## Usage
@@ -45,14 +45,14 @@ server and what files should be deployed. Example:
 }
 ```
 
-This configuration will deploy the folder `.oh-my-zsh` and the files `.zshrc` 
-and `.gitconfig` located in the users home folder and place them in 
-`/home/<user>` on to the remote host. `my_settings.txt` will be deployed as 
-`server_settings.txt`. Any `.gitignore` and `.DS_Store` files will be ignored 
+This configuration will deploy the folder `.oh-my-zsh` and the files `.zshrc`
+and `.gitconfig` located in the users home folder and place them in
+`/home/<user>` on to the remote host. `my_settings.txt` will be deployed as
+`server_settings.txt`. Any `.gitignore` and `.DS_Store` files will be ignored
 as well as `.git` folders.
 
-It will also install `tree` and `zsh`and set `zsh` as the default 
-login shell for the user and run the script `~/init.sh` on the remote host.
+It will also install `tree` and `zsh`and set `zsh` as the default login shell
+for the user and run the script `~/init.sh` on the remote host.
 
 
 ## Installation
@@ -70,16 +70,16 @@ python3 setup.py install
 ```
 
 * You can now use `scd` on the command line. When running it for the first
-time a default configuration will be created. 
+time a default configuration will be created.
 
 * Edit the configuration file (`~/.scd/config`) with your settings
 
 ## Configuration options
 
 ##### "shell"
-Specifies which shell to use on the remote server. If specified, the selected 
-shell will be installed together with the other specified programs and the 
-default login shell will be changed to this shell. 
+Specifies which shell to use on the remote server. If specified, the selected
+shell will be installed together with the other specified programs and the
+default login shell will be changed to this shell.
 
 ##### "programs"
 Specifies a list of programs to install on the remote host.
@@ -87,9 +87,9 @@ Specifies a list of programs to install on the remote host.
 ##### "files"
 Specifies a list of files and directories to deploy to the remote host. The
 paths specified are absolute and will be deployed to the same location on the
-host. `~` will expand to the home folder on the local host and to 
+host. `~` will expand to the home folder on the local host and to
 `/home/<USER>` on the remote host. You can also specify the name of the file or
-folder on the remote host using either a dictionary or a list: 
+folder on the remote host using either a dictionary or a list:
 
 ```json
 {
@@ -171,10 +171,11 @@ If combined with the `--private-key` flag the password will be used to decrypt
 the private key.
 
 ##### --password (-p) PASSWORD
-Specify the password to use for authentication. It is better to use the `-f` flag
-to specify password since otherwise the password can be seen by other processes.
-Only use this for testing or if you don't care about security. If combined with
-the `--private-key` flag the password will be used to decrypt the private key.
+Specify the password to use for authentication. It is better to use the `-f` 
+flag to specify password since otherwise the password can be seen by other 
+processes. Only use this for testing or if you don't care about security. If
+combined with the `--private-key` flag the password will be used to decrypt 
+the private key.
 
 ##### --verbose (-v)
 Prints additional information.
