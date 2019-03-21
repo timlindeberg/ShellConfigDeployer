@@ -1,5 +1,4 @@
 import os
-import os.path
 import sys
 from fnmatch import fnmatch
 
@@ -76,4 +75,4 @@ class HostConfiguration:
         if not path.startswith("~"):
             return path
         user = self.settings.user
-        return f"/home/{user}" + path[1:]
+        return f"/home/{user}{path[1:]}"

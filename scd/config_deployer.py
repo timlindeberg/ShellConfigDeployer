@@ -1,6 +1,6 @@
 import os
 import textwrap
-import zipfile
+import tarfile
 
 from scd.colors import *
 from scd.constants import *
@@ -54,10 +54,11 @@ class ConfigDeployer:
         lines += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(programs)]
         exit_code, output = self.host.execute_command(lines)
         time = get_time(start)
-        self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully installed needed programs in %s s.",
-                                                         time, verbose=True),
-                            lambda: self.printer.error("Failed to install programs."))
+        self._handle_result(
+            exit_code,
+            output,
+            lambda: self.printer.success("Successfully installed needed programs in %s s.", time, verbose=True),
+            lambda: self.printer.error("Failed to install programs."))
         if exit_code != 0:
             raise DeploymentException
 
@@ -68,15 +69,15 @@ class ConfigDeployer:
         start = timer()
         self.printer.info("Changing default shell to %s", shell)
         user = self.host.user
-        command = ["sudo usermod -s $(which %s) %s" % (shell, user)]
+        command = [f"sudo usermod -s $(which {shell}) {user}"]
 
         exit_code, output = self.host.execute_command(command)
         time = get_time(start)
-        self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully changed default shell to %s "
-                                                         "for user %s in %s s.",
-                                                         shell, user, time, verbose=True),
-                            lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
+        self._handle_result(
+            exit_code,
+            output,
+            lambda: self.printer.success("Successfully changed default shell to %s for user %s in %s s.", shell, user, time, verbose=True),
+            lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
         if exit_code != 0:
             raise DeploymentException
 
@@ -89,22 +90,22 @@ class ConfigDeployer:
         self.printer.info("Deploying %s " + files_str, len(files))
         if len(files) < self.MAX_FILES_TO_PRINT:
             self.printer.info([magenta(f[0]) for f in files])
-        self._create_zip(files)
+        self._create_tar(files)
         home = "/home/%s" % self.host.user
-        self.host.send_file(ZIP_PATH, "%s/%s" % (home, ZIP_NAME))
-        os.remove(ZIP_PATH)
+        remote_tar_path = f"{home}/{TAR_NAME}"
+        self.host.send_file(TAR_PATH, remote_tar_path)
+        os.remove(TAR_PATH)
         commands = [
-            "cd %s" % home,
-            "sudo unzip -q -o -d / ./%s" % ZIP_NAME,
-            "rm %s" % ZIP_NAME
+            f"tar -xzf {remote_tar_path} -C /",
+            f"rm {remote_tar_path}"
         ]
         exit_code, output = self.host.execute_command(commands)
         time = get_time(start)
-        self._handle_result(exit_code, output,
-                            lambda: self.printer.success("Successfully deployed %s configuration files to host "
-                                                         "in %s s.",
-                                                         len(files), time, verbose=True),
-                            lambda: self.printer.error("Failed to deploy configuration files to host."))
+        self._handle_result(
+            exit_code,
+            output,
+            lambda: self.printer.success("Successfully deployed %s configuration files to host in %s s.", len(files), time, verbose=True),
+            lambda: self.printer.error("Failed to deploy configuration files to host."))
         if exit_code != 0:
             raise DeploymentException
 
@@ -128,11 +129,11 @@ class ConfigDeployer:
             exit_code, output = self.host.execute_command(script_content, exit_on_failure=False)
 
             time = get_time(start)
-            self._handle_result(exit_code, output,
-                                lambda: self.printer.success("Successfully executed script %s on host %s in %s s.",
-                                                             script, self.host.name, time, verbose=True),
-                                lambda: self.printer.error("Failed executing script %s on host %s.", script,
-                                                           self.host.name))
+            self._handle_result(
+                exit_code,
+                output,
+                lambda: self.printer.success("Successfully executed script %s on host %s in %s s.", script, self.host.name, time, verbose=True),
+                lambda: self.printer.error("Failed executing script %s on host %s.", script, self.host.name))
             if exit_code == 0:
                 executed_scripts.append(script)
         return executed_scripts
@@ -147,14 +148,15 @@ class ConfigDeployer:
             self.printer.error([magenta(l) if l.startswith("+") else red(l) for l in lines])
             on_error()
 
-    def _create_zip(self, files):
-        self.printer.info("Creating new zip file %s.", ZIP_PATH, verbose=True)
-        zip_file = zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED)
-        for from_, to in files:
-            try:
-                zip_file.write(from_, arcname=to)
-            except PermissionError as e:
-                self.printer.error("Could not add %s to deployment zip file.", from_)
-                self.printer.error("    " + str(e))
-                raise DeploymentException
-        zip_file.close()
+    def _create_tar(self, files):
+        self.printer.info("Creating new tar file %s.", TAR_PATH, verbose=True)
+        if(os.path.isfile(TAR_PATH)):
+            os.remove(TAR_PATH)
+        with tarfile.open(TAR_PATH, "w:gz", dereference=True) as tar:
+            for from_, to in files:
+                try:
+                    tar.add(from_, arcname=to)
+                except PermissionError as e:
+                    self.printer.error("Could not add %s to deployment tar file.", from_)
+                    self.printer.error("    " + str(e))
+                    raise DeploymentException

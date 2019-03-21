@@ -114,7 +114,6 @@ class Host:
 
         return ssh
 
-
     def _get_private_key(self):
         if not self.private_key:
             return None

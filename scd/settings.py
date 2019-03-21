@@ -29,8 +29,7 @@ class Settings:
             "~/.zshrc"
         ],
         "programs": [
-            "unzip",
-            "tree",
+            "tree"
             "zsh"
         ],
         "scripts": []
@@ -143,15 +142,13 @@ class Settings:
         def _parse_file(file):
             if type(file) is dict:
                 if not (len(file) == 2 and "source_path" in file and "host_path" in file):
-                    self.printer.error("Invalid file: %s. Dict items in file should contain two elements, "
-                                       "source_path and the host_path.", file)
+                    self.printer.error("Invalid file: %s. Dict items in file should contain two elements, source_path and the host_path.", file)
                     sys.exit(1)
 
                 return file["source_path"], file["host_path"]
             elif type(file) is list:
                 if len(file) != 2:
-                    self.printer.error("Invalid file: %s. List items in file should contain two elements, "
-                                       "the source path and the host path.", file)
+                    self.printer.error("Invalid file: %s. List items in file should contain two elements, the source path and the host path.", file)
                     sys.exit(1)
 
                 return file[0], file[1]

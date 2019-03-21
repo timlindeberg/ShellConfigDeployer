@@ -25,7 +25,6 @@ be deployed. Example configuration:
         ["~/my_settings.txt", "~/server_settings.txt"]
     ],
     "programs": [
-        "unzip",
         "tree"
     ],
     "scripts": [

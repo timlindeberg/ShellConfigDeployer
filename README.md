@@ -35,7 +35,6 @@ server and what files should be deployed. Example:
         ["~/my_settings.txt", "~/server_settings.txt"]
     ],
     "programs": [
-        "unzip",
         "tree"
     ],
      "scripts": [
@@ -50,14 +49,9 @@ and `.gitconfig` located in the users home folder and place them in
 `server_settings.txt`. Any `.gitignore` and `.DS_Store` files will be ignored 
 as well as `.git` folders.
 
-It will also install `unzip`, `tree` and `zsh`and set `zsh` as the default 
+It will also install `tree` and `zsh`and set `zsh` as the default 
 login shell for the user and run the script `~/init.sh` on the remote host.
 
-##### NOTE:
-
-Not all Unix systems come with `unzip` already installed. `unzip` is needed by 
-SCD to deploy the configuration files. By adding `unzip` to the programs list
-you can make sure that it is installed before deploying the files.
 
 ## Installation
 
