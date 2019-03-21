@@ -1,15 +1,17 @@
 # Shell Configuration Deployer (SCD)
-A program used to deploy shell configuration to remote hosts. The program can
-be used to automatically deploy your shell configuration to remote hosts before
+
+A program used to deploy shell configuration to remote hosts. The program can 
+be used to automatically deploy your shell configuration to remote hosts before 
 sshing in to them. This way you can always use your desired shell configuration 
 no matter where you are. See `bin/sshops` for an example of how it can be used.
 
-SCD keeps track of which servers have correct shell configuration by keeping
+SCD keeps track of which servers have correct shell configuration by keeping 
 track of the time of deployment as well as a list of programs and files that 
 have been installed. Any files that have since changed or been added will be 
 redeployed to the server. It can not handle removal of files or programs.
 
 ## Usage
+
 Use `scd` on the command line to deploy your configuration to the desired host:
 
 `scd -u vagrant -p vagrant -P 2222 127.0.0.1`

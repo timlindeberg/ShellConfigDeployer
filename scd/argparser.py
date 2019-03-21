@@ -1,52 +1,21 @@
 import argparse
+import re
 
 from scd.constants import *
 
-DESCRIPTION = """
-Deploys shell configuration to remote servers. Use ~/.scd/config to specify
-what programs should be installed on the remote server and what files should
-be deployed. Example configuration:
 
-{
-    "user": "vagrant",
-    "host": "127.0.0.1",
-    "port": 2222,
-    "shell": "zsh",
-    "private_key": "~/my_key.pem",
-    "ignored_files": [
-        "*/.gitignore",
-        "*/.git/*",
-        "*/.DS_Store"
-    ],
-    "files": [
-        "~/.oh-my-zsh",
-        "~/.zshrc",
-        "~/.gitconfig",
-        ["~/my_settings.txt", "~/server_settings.txt"]
-    ],
-    "programs": [
-        "tree"
-    ],
-    "scripts": [
-        "~/init.sh"
-    ]
-}
+def _read_description():
+    with open("README.md", 'r') as f:
+        description = f.read()
 
-This configuration will deploy the folder .oh-my-zsh and the files .zshrc and
-.gitconfig located in the users home folder and place them in /home/<user> on
-to the remote host. my_settings.txt will be deployed as server_settings.txt.
-Any .gitignore and .DS_Store files will be ignored as well as .git folders.
+    # Hack to remove single new lines from README
+    description = description.split('##')[0]
+    description = description.replace('\n\n', '\n\n\n')
+    description = re.sub(r'\n([^\n])', '\\1', description)
+    return description
 
-It will also install unzip, tree and zsh and set zsh as the default login shell
-for the user and run the script ~/init.sh on the remote host.
 
-SCD keeps track of which servers have correct shell configuration by keeping
-track of the time of deployment as well as a list of programs that have been
-installed. Any files that have since changed or been added will be redeployed
-to the server. It can not handle removal of files or programs.
-"""
-
-parser = argparse.ArgumentParser(prog="scd", description=DESCRIPTION,
+parser = argparse.ArgumentParser(prog="scd", description=_read_description(),
                                  formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("hosts", type=str, nargs="*",
                     help="the hosts to deploy configuration to")
