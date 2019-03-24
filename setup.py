@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from scd.constants import VERSION
 import sys
 
 if sys.version_info < (3, 6):
@@ -11,7 +12,7 @@ requirements = [i.strip() for i in open("requirements.txt").readlines()]
 
 setup(
     name='scd',
-    version='1.2',
+    version=VERSION,
     license='MIT',
     description='A program to deploy your shell configuration to remote hosts.',
     long_description=long_description,
