@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 
 if sys.version_info < (3, 6):
-    sys.exit('SCD requires python 3.6 or higher')
+    sys.exit("SCD requires python 3.6 or higher")
 
 with open("README.md", 'r') as f:
     long_description = f.read()

@@ -102,7 +102,7 @@ class Settings:
         host_status = HostStatus()
         status = host_status.status
         if host_to_print == "all":
-            self._print_colored_json(status)
+            self._print_colored_json(host_status.as_dict())
         elif host_to_print in status:
             self._print_colored_json(status[host_to_print])
         else:

@@ -43,7 +43,9 @@ class Host:
             session.get_pty()  # So we can run sudo etc.
 
             command = self._create_remote_script(commands, home_path, as_sudo)
-            self.printer.info("Executing command on server:\n%s", command, verbose=True)
+            self.printer.info("Executing command on server:", verbose=True)
+            self.printer.info([l for l in command.lstrip().rstrip().split('\n')], verbose=True)
+
             session.exec_command(command)
             self.needs_cleanup = False
 

@@ -23,8 +23,6 @@ class SCD:
         self.host_status: HostStatus = None
         self.printer = Printer()
         self.hosts: List[Host] = []
-        sys.excepthook = self.color_exceptions
-        signal.signal(signal.SIGINT, self.sigint_handler)
 
     def run(self):
         self.settings = Settings()
@@ -98,6 +96,12 @@ class SCD:
         sys.exit(0)
 
 
-if __name__ == "__main__":
+def main():
     scd = SCD()
+    sys.excepthook = scd.color_exceptions
+    signal.signal(signal.SIGINT, scd.sigint_handler)
     scd.run()
+
+
+if __name__ == "__main__":
+    main()

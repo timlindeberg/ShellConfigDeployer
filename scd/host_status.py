@@ -76,14 +76,17 @@ class HostStatus:
         with open(SERVER_STATUS_FILE, "w") as f:
             f.seek(0)
             f.truncate()
-            status_data = {}
-            for host, status in self.status.items():
-                status_data[host] = status.__dict__
+            json.dump(self.as_dict(), f)
 
-            json.dump({
-                "host_mappings": self.host_mappings,
-                "status": status_data
-            }, f)
+    def as_dict(self) -> Dict[str, any]:
+        status_data = {}
+        for host, status in self.status.items():
+            status_data[host] = status.__dict__
+
+        return {
+            "host_mappings": self.host_mappings,
+            "status": status_data
+        }
 
     def _read_host_status(self, json: Dict[str, any]) -> Dict[str, StatusData]:
         statuses: Dict[str, StatusData] = {}
