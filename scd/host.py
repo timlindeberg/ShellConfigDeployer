@@ -67,7 +67,7 @@ class Host:
 
         return self._with_connection(_send_file)
 
-    def cleanup(self) -> None :
+    def cleanup(self) -> None:
         def _cleanup_password_file(connection: paramiko.SSHClient) -> None:
             session = connection.get_transport().open_session()
             session.get_pty()  # So we can run sudo etc.

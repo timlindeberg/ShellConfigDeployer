@@ -22,8 +22,8 @@ class StatusData:
         self.executed_scripts = executed_scripts
         self.shell = shell
 
-    def init(self, dict) -> None:
-        self.__dict__.update(dict)
+    def init(self, new_dict) -> None:
+        self.__dict__.update(new_dict)
 
 
 def empty_status() -> StatusData:

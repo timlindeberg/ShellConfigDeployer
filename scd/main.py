@@ -35,8 +35,8 @@ class SCD:
             self.printer.info("", verbose=True)
             try:
                 if self._deploy_config_to_host(host):
-                    time = get_time(start)
-                    self.printer.success("Configuration successfully deployed to %s in %s s.", host, time)
+                    elapsed_time = get_time(start)
+                    self.printer.success("Configuration successfully deployed to %s in %s s.", host, elapsed_time)
             except DeploymentException:
                 self.printer.error("Failed deploying configuration to %s.", host)
 
@@ -71,8 +71,8 @@ class SCD:
         if len(configuration.scripts) != len(executed_scripts):
             raise DeploymentException
 
-    def color_exceptions(self, type, value, tb):
-        stack_trace = "".join(traceback.format_exception(type, value, tb))
+    def color_exceptions(self, tpe, value, tb):
+        stack_trace = "".join(traceback.format_exception(tpe, value, tb))
         if not colors.no_color:
             lexer = lexers.get_lexer_by_name("pytb", stripall=True)
             formatter = formatters.TerminalFormatter()

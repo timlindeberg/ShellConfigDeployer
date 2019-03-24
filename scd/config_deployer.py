@@ -53,11 +53,11 @@ class ConfigDeployer:
 
         lines = trim_multiline_str(select_package_manager).split("\n")
         exit_code, output = self.host.execute_command(lines, as_sudo=True)
-        time = get_time(start)
+        elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
             output,
-            lambda: self.printer.success("Successfully installed needed programs in %s s.", time, verbose=True),
+            lambda: self.printer.success("Successfully installed needed programs in %s s.", elapsed_time, verbose=True),
             lambda: self.printer.error("Failed to install programs."))
         if exit_code != 0:
             raise DeploymentException
@@ -72,11 +72,11 @@ class ConfigDeployer:
         command = [f"usermod -s $(which {shell}) {user}"]
 
         exit_code, output = self.host.execute_command(command, as_sudo=True)
-        time = get_time(start)
+        elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
             output,
-            lambda: self.printer.success("Successfully changed default shell to %s for user %s in %s s.", shell, user, time, verbose=True),
+            lambda: self.printer.success("Successfully changed default shell to %s for user %s in %s s.", shell, user, elapsed_time, verbose=True),
             lambda: self.printer.error("Failed to change shell to %s for user %s.", shell, user))
         if exit_code != 0:
             raise DeploymentException
@@ -100,11 +100,11 @@ class ConfigDeployer:
             f"rm {remote_tar_path}"
         ]
         exit_code, output = self.host.execute_command(commands)
-        time = get_time(start)
+        elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
             output,
-            lambda: self.printer.success("Successfully deployed %s configuration files to host in %s s.", len(files), time, verbose=True),
+            lambda: self.printer.success("Successfully deployed %s configuration files to host in %s s.", len(files), elapsed_time, verbose=True),
             lambda: self.printer.error("Failed to deploy configuration files to host."))
         if exit_code != 0:
             raise DeploymentException
@@ -135,11 +135,11 @@ class ConfigDeployer:
 
         exit_code, output = self.host.execute_command(script_content, exit_on_failure=False, as_sudo=script_data.as_sudo)
 
-        time = get_time(start)
+        elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
             output,
-            lambda: self.printer.success("Successfully executed script %s on host %s in %s s.", script, self.host.name, time, verbose=True),
+            lambda: self.printer.success("Successfully executed script %s on host %s in %s s.", script, self.host.name, elapsed_time, verbose=True),
             lambda: self.printer.error("Failed executing script %s on host %s.", script, self.host.name))
         return exit_code == 0
 
@@ -155,7 +155,7 @@ class ConfigDeployer:
 
     def _create_tar(self, files: List[FileData]) -> None:
         self.printer.info("Creating new tar file %s.", TAR_PATH, verbose=True)
-        if(os.path.isfile(TAR_PATH)):
+        if os.path.isfile(TAR_PATH):
             os.remove(TAR_PATH)
 
         with tarfile.open(TAR_PATH, "w:gz", dereference=True) as tar:

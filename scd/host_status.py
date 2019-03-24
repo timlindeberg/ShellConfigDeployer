@@ -88,11 +88,11 @@ class HostStatus:
             "status": status_data
         }
 
-    def _read_host_status(self, json: Dict[str, any]) -> Dict[str, StatusData]:
+    @staticmethod
+    def _read_host_status(status_data: Dict[str, any]) -> Dict[str, StatusData]:
         statuses: Dict[str, StatusData] = {}
-        for host, data in json.items():
+        for host, data in status_data.items():
             status = empty_status()
             status.init(data)
             statuses[host] = status
         return statuses
-
