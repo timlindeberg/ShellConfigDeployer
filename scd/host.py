@@ -3,6 +3,7 @@ import socket
 import paramiko
 import os.path
 
+from scd.constants import *
 from scd.config_deployer import DeploymentException
 from scd.host_status import HostStatus
 
@@ -22,15 +23,20 @@ class Host:
         self.name = self._get_host_name(self.host_statuses, url)
         self.status = self.host_statuses[self.name]
 
-    def execute_command(self, command, exit_on_failure=True, echo_commands=True):
+    def execute_command(self, command, as_sudo=False, exit_on_failure=True, echo_commands=True):
+        commands = self._get_commands(command, exit_on_failure, echo_commands)
+        home_path = f"/home/{self.user}"
+        if as_sudo:
+            self._send_pwd(home_path)
+
         def _execute_command(connection):
             session = connection.get_transport().open_session()
             session.get_pty()  # So we can run sudo etc.
-            commands = self._get_commands(command, exit_on_failure, echo_commands)
-            self.printer.info("Executing commands on host:", verbose=True)
-            self.printer.info(commands, verbose=True)
 
-            session.exec_command("\n".join(commands))
+            command = self._create_remote_script(commands, home_path, as_sudo)
+            self.printer.info("Executing command on server:\n%s", command, verbose=True)
+            session.exec_command(command)
+
             stdout = session.makefile("rb", -1)
             output = self._read_output(stdout)
 
@@ -48,6 +54,30 @@ class Host:
             sftp.close()
 
         return self._with_connection(_send_file)
+
+    def _send_pwd(self, home_path):
+        with open(PWD_PATH, 'w') as f:
+            f.write(self.password + '\n')
+        self.send_file(PWD_PATH, f"{home_path}/{PWD_NAME}")
+        if os.path.isfile(PWD_PATH):
+            os.remove(PWD_PATH)
+
+    def _create_remote_script(self, commands, home_path, as_sudo):
+        content = "\n".join(commands)
+
+        if not as_sudo:
+            return content
+
+        return fr"""
+function finish {{
+  rm -- {home_path}/{PWD_NAME} 
+}}
+trap finish EXIT
+read -r -d '' SCRIPT <<- "EOM"
+{content}
+EOM
+cat '{home_path}/{PWD_NAME}' | sudo -S bash -c "$SCRIPT"
+"""
 
     def _get_host_name(self, host_statues, url):
         name = host_statues.get_host_name(url)

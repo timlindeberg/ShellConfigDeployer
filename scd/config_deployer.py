@@ -1,7 +1,7 @@
 import os
-import textwrap
 import tarfile
 
+from scd.utils import *
 from scd.colors import *
 from scd.constants import *
 
@@ -25,34 +25,34 @@ class ConfigDeployer:
 
         self.printer.info("Installing " + ", ".join([magenta(p) for p in programs]))
 
-        select_package_manager = """
-                if [ -f /etc/redhat-release ]; then
-                    PACKAGE_MANAGER="yum"
-                    ANSWER_YES="-y"
-                elif [ -f /etc/arch-release ]; then
-                    PACKAGE_MANAGER="pacman"
-                    ANSWER_YES="--noconfirm"
-                elif [ -f /etc/gentoo-release ]; then
-                    PACKAGE_MANAGER="emerge"
-                    ANSWER_YES=""
-                elif [ -f /etc/SuSE-release ]; then
-                    PACKAGE_MANAGER="zypper"
-                    ANSWER_YES="-n"
-                elif [ -f /etc/debian_version ]; then
-                    PACKAGE_MANAGER="apt-get"
-                    ANSWER_YES="-y"
-                elif [ "$(uname)" == "Darwin" ]; then
-                    PACKAGE_MANAGER="brew"
-                    ANSWER_YES=""
-                else
-                    echo "Unsupported distribution."
-                    exit 1
-                fi
-            """
+        select_package_manager = f"""
+            if [ -f /etc/redhat-release ]; then
+                PACKAGE_MANAGER="yum"
+                ANSWER_YES="-y"
+            elif [ -f /etc/arch-release ]; then
+                PACKAGE_MANAGER="pacman"
+                ANSWER_YES="--noconfirm"
+            elif [ -f /etc/gentoo-release ]; then
+                PACKAGE_MANAGER="emerge"
+                ANSWER_YES=""
+            elif [ -f /etc/SuSE-release ]; then
+                PACKAGE_MANAGER="zypper"
+                ANSWER_YES="-n"
+            elif [ -f /etc/debian_version ]; then
+                PACKAGE_MANAGER="apt-get"
+                ANSWER_YES="-y"
+            elif [ "$(uname)" == "Darwin" ]; then
+                PACKAGE_MANAGER="brew"
+                ANSWER_YES=""
+            else
+                echo "Unsupported distribution."
+                exit 1
+            fi
+            $PACKAGE_MANAGER $ANSWER_YES install {" ".join(programs)}
+        """
 
-        lines = textwrap.dedent(select_package_manager).strip().split("\n")
-        lines += ["sudo $PACKAGE_MANAGER $ANSWER_YES install " + " ".join(programs)]
-        exit_code, output = self.host.execute_command(lines)
+        lines = trim_multiline_str(select_package_manager).split("\n")
+        exit_code, output = self.host.execute_command(lines, as_sudo=True)
         time = get_time(start)
         self._handle_result(
             exit_code,
@@ -69,9 +69,9 @@ class ConfigDeployer:
         start = timer()
         self.printer.info("Changing default shell to %s", shell)
         user = self.host.user
-        command = [f"sudo usermod -s $(which {shell}) {user}"]
+        command = [f"usermod -s $(which {shell}) {user}"]
 
-        exit_code, output = self.host.execute_command(command)
+        exit_code, output = self.host.execute_command(command, as_sudo=True)
         time = get_time(start)
         self._handle_result(
             exit_code,

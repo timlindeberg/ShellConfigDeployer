@@ -81,6 +81,11 @@ def _color_exceptions(type, value, tb):
 def _sigint_handler(signal, frame):
     print()  # since most terminals echo ^C
     Printer().error("Received ^C, exiting...")
+
+    for file in TEMPORARY_FILES:
+        if os.path.isfile(file):
+            os.remove(file)
+
     sys.exit(0)
 
 

@@ -132,7 +132,7 @@ class Settings:
         self.force = args.force
         self.private_key = args.private_key or config.get("private_key") or None
 
-        self.password = self._get_password(args)
+        self.password = self._get_password(config, args)
 
     def _parse_files(self, config):
         files = config.get("files")
@@ -160,7 +160,7 @@ class Settings:
 
         return [_parse_file(file) for file in files]
 
-    def _get_password(self, args):
+    def _get_password(self, config, args):
         password_file = args.password_file
         if password_file:
             if not os.path.isfile(password_file):
@@ -172,10 +172,7 @@ class Settings:
             self.printer.info("Enter password: ", end="")
             return getpass(prompt="")
 
-        if args.password:
-            return args.password
-
-        return None
+        return args.password or config.password
 
     def _error(self, msg, *items):
         self.printer.error(msg, *items)
