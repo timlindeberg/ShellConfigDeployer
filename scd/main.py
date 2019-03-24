@@ -1,30 +1,35 @@
 import signal
 import sys
 import traceback
+from typing import List
 
 from pygments import highlight, lexers, formatters
 
 from scd import colors
 from scd.config_deployer import ConfigDeployer, DeploymentException
 from scd.constants import *
-from scd.utils import *
 from scd.host import Host
 from scd.host_configuration import HostConfiguration
-from scd.host_status import HostStatus
+from scd.host_status import HostStatus, empty_status
 from scd.printer import Printer
 from scd.settings import Settings
+from scd.utils import *
 
 
 class SCD:
 
     def __init__(self):
-        self.settings = None
+        self.settings: Settings = None
+        self.host_status: HostStatus = None
         self.printer = Printer()
-        self.hosts = []
+        self.hosts: List[Host] = []
+        sys.excepthook = self.color_exceptions
+        signal.signal(signal.SIGINT, self.sigint_handler)
 
     def run(self):
         self.settings = Settings()
         self.printer = Printer(self.settings.verbose)
+        self.host_status = HostStatus()
 
         for host in self.settings.hosts:
             start = timer()
@@ -37,11 +42,11 @@ class SCD:
             except DeploymentException:
                 self.printer.error("Failed deploying configuration to %s.", host)
 
-    def _deploy_config_to_host(self, url):
-        host = Host(self.printer, self.settings, url)
+    def _deploy_config_to_host(self, url: str) -> bool:
+        host = Host(self.printer, self.settings, self.host_status, url)
         self.hosts.append(host)
 
-        host_status = HostStatus.initial_status() if self.settings.force else host.status
+        host_status = empty_status() if self.settings.force else host.status
         configuration = HostConfiguration(self.printer, self.settings, host_status)
 
         if configuration.is_empty():
@@ -51,21 +56,20 @@ class SCD:
         self._deploy_configuration(host, configuration)
         return True
 
-    def _deploy_configuration(self, host, configuration):
+    def _deploy_configuration(self, host: Host, configuration: HostConfiguration) -> None:
         config_deployer = ConfigDeployer(self.printer, host)
-        host_status = host.host_statuses
 
         config_deployer.install_programs(configuration.programs)
-        host_status.update(host.name, installed_programs=self.settings.programs)
+        self.host_status.update(host.name, installed_programs=self.settings.programs)
 
         config_deployer.deploy_files(configuration.files)
-        host_status.update(host.name, deployed_files=self.settings.files)
+        self.host_status.update(host.name, deployed_files=self.settings.files)
 
         config_deployer.change_shell(configuration.shell)
-        host_status.update(host.name, shell=configuration.shell)
+        self.host_status.update(host.name, shell=configuration.shell)
 
         executed_scripts = config_deployer.run_scripts(configuration.scripts)
-        host_status.update(host.name, scripts=executed_scripts)
+        self.host_status.update(host.name, scripts=executed_scripts)
         if len(configuration.scripts) != len(executed_scripts):
             raise DeploymentException
 
@@ -96,7 +100,4 @@ class SCD:
 
 if __name__ == "__main__":
     scd = SCD()
-    sys.excepthook = scd.color_exceptions
-    signal.signal(signal.SIGINT, scd.sigint_handler)
-
     scd.run()

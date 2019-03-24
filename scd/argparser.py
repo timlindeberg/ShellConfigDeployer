@@ -4,7 +4,7 @@ import re
 from scd.constants import *
 
 
-def _read_description():
+def _read_description() -> str:
     with open("README.md", 'r') as f:
         description = f.read()
 

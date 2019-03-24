@@ -1,6 +1,6 @@
 import os.path
 
-HOME = os.path.expanduser("~")
+HOME: str = os.path.expanduser("~")
 SCD_FOLDER = f"{HOME}/.scd"
 SCD_CONFIG = f"{SCD_FOLDER}/config"
 TAR_NAME = "scd_conf.tar.gz"

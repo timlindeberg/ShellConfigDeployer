@@ -1,65 +1,68 @@
 import json
-import os
 import time
-from datetime import datetime
+from typing import Dict, List, Set, Optional
 
 from scd.constants import *
+from scd.data_structs import FileData, StatusData, empty_status
+from scd.utils import time_stamp_to_date
 
 
 class HostStatus:
-    @staticmethod
-    def initial_status():
-        return {
-            "last_deployment": "1970-01-01 01:00:00",  # time: 0
-            "installed_programs": [],
-            "deployed_files": [],
-            "executed_scripts": []
-        }
 
     def __init__(self):
-        self.status = self._read_host_status()
-        if not self.status.get("_host_mappings"):
-            self.status["_host_mappings"] = {}
+        self.status: Dict[str, StatusData] = {}
+        self.host_mappings: Dict[str, str] = {}
+        with open(SERVER_STATUS_FILE) as f:
+            try:
+                data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                return
+            status = data.get("status")
+            if status:
+                self.status = self._read_host_status(status)
+            self.host_mappings = data.get("host_mappings") or {}
 
-    def __getitem__(self, host):
+    def __getitem__(self, host: str) -> StatusData:
         if host not in self.status:
-            self.status[host] = self.initial_status()
-        status = self.status[host]
-        time_stamp = self._date_to_time_stamp(status["last_deployment"])
-        status["last_deployment"] = time_stamp
-        return status
+            self.status[host] = empty_status()
+        return self.status[host]
 
-    def update(self, hostname, installed_programs=None, deployed_files=None, shell=None, scripts=None):
+    def update(self,
+               hostname: str,
+               installed_programs: Set[str]=None,
+               deployed_files: List[FileData]=None,
+               shell: Optional[str]=None,
+               scripts: List[str]=None) -> None:
         if not (installed_programs or deployed_files or shell or scripts):
             return
 
-        status = self.status[hostname] if hostname in self.status else {}
-        status["last_deployment"] = self._time_stamp_to_date(time.time())
+        status = self.status[hostname] if hostname in self.status else empty_status()
+        status.last_deployment = time_stamp_to_date(time.time())
 
-        programs = set(status.get("installed_programs") or [])
+        programs: Set[str] = set(status.installed_programs)
 
         if installed_programs:
             programs.update(installed_programs)
         if deployed_files:
-            status["deployed_files"] = [f[0] for f in deployed_files]
+            status.deployed_files = [f.from_path for f in deployed_files]
         if shell:
             programs.add(shell)
-            status["shell"] = shell
+            status.shell = shell
         if scripts:
-            status["executed_scripts"] = scripts
+            status.executed_scripts = scripts
 
-        status["installed_programs"] = list(programs)
+        status.installed_programs = list(programs)
         self.status[hostname] = status
         self.save()
 
-    def add_host_mapping(self, url, name):
-        self.status["_host_mappings"][url] = name
+    def add_host_mapping(self, url: str, name: str) -> None:
+        self.host_mappings[url] = name
         self.save()
 
-    def get_host_name(self, url):
-        return self.status["_host_mappings"].get(url)
+    def get_host_name(self, url: str) -> Optional[str]:
+        return self.host_mappings.get(url)
 
-    def clear(self, url):
+    def clear(self, url: str) -> bool:
         name = self.get_host_name(url)
         if name and name in self.status:
             del self.status[name]
@@ -69,27 +72,24 @@ class HostStatus:
             return True
         return False
 
-    def save(self):
+    def save(self) -> None:
         with open(SERVER_STATUS_FILE, "w") as f:
             f.seek(0)
             f.truncate()
-            json.dump(self.status, f)
+            status_data = {}
+            for host, status in self.status.items():
+                status_data[host] = status.__dict__
 
-    @staticmethod
-    def _read_host_status():
-        if not os.path.isfile(SERVER_STATUS_FILE):
-            return {}
+            json.dump({
+                "host_mappings": self.host_mappings,
+                "status": status_data
+            }, f)
 
-        with open(SERVER_STATUS_FILE) as f:
-            try:
-                return json.load(f)
-            except ValueError:
-                return {}
+    def _read_host_status(self, json: Dict[str, any]) -> Dict[str, StatusData]:
+        statuses: Dict[str, StatusData] = {}
+        for host, data in json.items():
+            status = empty_status()
+            status.init(data)
+            statuses[host] = status
+        return statuses
 
-    @staticmethod
-    def _date_to_time_stamp(date):
-        return time.mktime(datetime.strptime(date, TIME_FORMAT).timetuple())
-
-    @staticmethod
-    def _time_stamp_to_date(time_stamp):
-        return datetime.fromtimestamp(time_stamp).strftime(TIME_FORMAT)

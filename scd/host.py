@@ -1,58 +1,63 @@
 import socket
+from typing import List, Tuple, Callable, TypeVar
 
-import paramiko
 import os.path
+import paramiko
 
 from scd.constants import *
-from scd.config_deployer import DeploymentException
+from scd.data_structs import DeploymentException
 from scd.host_status import HostStatus
+from scd.printer import Printer
+from scd.settings import Settings
+
+T = TypeVar('T')
 
 
 class Host:
-    def __init__(self, printer, settings, url):
+    def __init__(self, printer: Printer, settings: Settings, host_status: HostStatus, url: str):
         self.printer = printer
         self.user = settings.user
         self.password = settings.password
         self.port = settings.port
         self.timeout = settings.timeout
         self.private_key = settings.private_key
+        self.host_status = host_status
+
         self.url = url
-
         self.name = url  # To display in error message if we're unable to resolve the hostname
-        self.host_statuses = HostStatus()
-        self.name = self._get_host_name(self.host_statuses, url)
-        self.status = self.host_statuses[self.name]
-        self.has_password_file = False
+        self.name = self._get_host_name(url)
+        self.status = self.host_status[self.name]
+        self.needs_cleanup = False
 
-    def execute_command(self, command, as_sudo=False, exit_on_failure=True, echo_commands=True):
+    def execute_command(self, commands: List[str], as_sudo=False, exit_on_failure=True, echo_commands=True) -> Tuple[int, List[str]]:
         if not self.password:
             as_sudo = False
 
-        commands = self._get_commands(command, exit_on_failure, echo_commands)
+        commands = self._get_commands(commands, exit_on_failure, echo_commands)
         home_path = f"/home/{self.user}"
         if as_sudo:
             self._send_pwd(home_path)
 
-        def _execute_command(connection):
+        def _execute_command(connection: paramiko.SSHClient) -> Tuple[int, List[str]]:
             session = connection.get_transport().open_session()
             session.get_pty()  # So we can run sudo etc.
 
             command = self._create_remote_script(commands, home_path, as_sudo)
             self.printer.info("Executing command on server:\n%s", command, verbose=True)
             session.exec_command(command)
-            self.has_password_file = False
+            self.needs_cleanup = False
 
             stdout = session.makefile("rb", -1)
             output = self._read_output(stdout)
 
-            status = session.recv_exit_status()
+            status: int = session.recv_exit_status()
             session.close()
             return status, output
 
         return self._with_connection(_execute_command)
 
-    def send_file(self, file_from, file_to):
-        def _send_file(connection):
+    def send_file(self, file_from: str, file_to: str) -> None:
+        def _send_file(connection: paramiko.SSHClient) -> None:
             sftp = paramiko.SFTPClient.from_transport(connection.get_transport())
             self.printer.info("Deploying file %s to %s:%s", file_from, self.url, file_to, verbose=True)
             sftp.put(file_from, file_to)
@@ -60,26 +65,26 @@ class Host:
 
         return self._with_connection(_send_file)
 
-    def cleanup(self):
-        def _cleanup_password_file(connection):
+    def cleanup(self) -> None :
+        def _cleanup_password_file(connection: paramiko.SSHClient) -> None:
             session = connection.get_transport().open_session()
             session.get_pty()  # So we can run sudo etc.
             pwd_path = f"/home/{self.user}/{PWD_NAME}"
             session.exec_command(f"rm {pwd_path}")
 
-        if self.has_password_file:
+        if self.needs_cleanup:
             self._with_connection(_cleanup_password_file)
 
-    def _send_pwd(self, home_path):
+    def _send_pwd(self, home_path: str) -> None:
         with open(PWD_PATH, 'w') as f:
             f.write(self.password + '\n')
         self.send_file(PWD_PATH, f"{home_path}/{PWD_NAME}")
-        self.has_password_file = True
+        self.needs_cleanup = True
         if os.path.isfile(PWD_PATH):
             os.remove(PWD_PATH)
 
     @staticmethod
-    def _create_remote_script(commands, home_path, as_sudo):
+    def _create_remote_script(commands: List[str], home_path: str, as_sudo: bool) -> str:
         content = "\n".join(commands)
 
         if not as_sudo:
@@ -96,24 +101,24 @@ EOM
 cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
 """
 
-    def _get_host_name(self, host_statues, url):
-        name = host_statues.get_host_name(url)
+    def _get_host_name(self, url: str) -> str:
+        name = self.host_status.get_host_name(url)
         if name:
             self.printer.info("Fetched hostname of %s from host mappings: %s.", url, name, verbose=True)
             return name
 
-        exit_code, output = self.execute_command("hostname", echo_commands=False)
+        exit_code, output = self.execute_command(["hostname"], echo_commands=False)
         if exit_code != 0:
             self.printer.error("Could not get hostname of %s", url)
             raise DeploymentException
 
         name = output[0]
         self.printer.info("Fetched hostname of %s from host: %s.", url, name, verbose=True)
-        host_statues.add_host_mapping(url, name)
+        self.host_status.add_host_mapping(url, name)
         return name
 
     @staticmethod
-    def _get_commands(commands, exit_on_failure=True, echo_commands=True):
+    def _get_commands(commands: List[str], exit_on_failure=True, echo_commands=True) -> List[str]:
         if exit_on_failure and echo_commands:
             c = ["set -ex"]
         elif exit_on_failure:
@@ -123,19 +128,15 @@ cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
         else:
             c = []
 
-        if type(commands) is str:
-            c.append(commands)
-        else:
-            c += commands
-        return c
+        return c + commands
 
-    def _with_connection(self, do):
+    def _with_connection(self, do: Callable[[paramiko.SSHClient], T]) -> T:
         connection = self._connect()
         res = do(connection)
         connection.close()
         return res
 
-    def _connect(self):
+    def _connect(self) -> paramiko.SSHClient:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         pkey = self._get_private_key()
@@ -156,12 +157,12 @@ cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
             raise DeploymentException
         except Exception as e:
             self.printer.error("Could not connect to %s", self.name)
-            self.printer.error("    " + str(e))
+            self.printer.error(f"    {e}")
             raise DeploymentException
 
         return ssh
 
-    def _get_private_key(self):
+    def _get_private_key(self) -> paramiko.PKey:
         if not self.private_key:
             return None
 
@@ -176,7 +177,7 @@ cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
             raise DeploymentException
 
     @staticmethod
-    def _read_output(source):
+    def _read_output(source) -> List[str]:
         output = ""
         while True:
             lines = source.read().decode("utf-8", errors="replace")

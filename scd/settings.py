@@ -2,12 +2,14 @@ import json
 import sys
 import textwrap
 from getpass import getpass
+from typing import List, Set, Dict, Optional
 
 from pygments import highlight, lexers, formatters
 
 from scd import colors
 from scd.argparser import parser
 from scd.constants import *
+from scd.data_structs import FileData, ScriptData
 from scd.host_status import HostStatus
 from scd.printer import Printer
 
@@ -46,7 +48,6 @@ class Settings:
 
         colors.no_color = args.no_color
 
-
         self.printer = Printer(False)
 
         self._check_config_file()
@@ -65,7 +66,7 @@ class Settings:
 
         self._parse_settings(args, config)
 
-    def _check_config_file(self):
+    def _check_config_file(self) -> None:
         if os.path.isfile(SCD_CONFIG):
             return
 
@@ -78,16 +79,16 @@ class Settings:
             f.write(self.DEFAULT_CONFIG)
             sys.exit(1)
 
-    def _parse_config_file(self):
+    def _parse_config_file(self) -> Dict[str, any]:
         with open(SCD_CONFIG) as f:
             try:
                 return json.load(f)
             except json.decoder.JSONDecodeError as e:
                 self.printer.error("Failed to parse configuration file %s:", SCD_CONFIG)
-                self.printer.error("    " + str(e))
+                self.printer.error(f"    {e}")
                 sys.exit(1)
 
-    def _clear_host_status(self, host):
+    def _clear_host_status(self, host: str) -> None:
         host_status = HostStatus()
         if host_status.clear(host):
             host_status.save()
@@ -97,7 +98,7 @@ class Settings:
             self.printer.error("Host status file does not contain host %s.", host)
             sys.exit(1)
 
-    def _print_host_status(self, host_to_print):
+    def _print_host_status(self, host_to_print: str) -> None:
         host_status = HostStatus()
         status = host_status.status
         if host_to_print == "all":
@@ -113,71 +114,70 @@ class Settings:
             self._print_colored_json(host_status.status[host_name])
         sys.exit(0)
 
-    def _print_config(self, config):
+    def _print_config(self, config: Dict[str, any]):
         self._print_colored_json(config)
         sys.exit(0)
 
-    def _parse_settings(self, args, config):
-        self.hosts = args.hosts or config.get("hosts") or self._error(
+    def _parse_settings(self, args: any, config: Dict[str, any]) -> None:
+        self.hosts: List[str] = args.hosts or config.get("hosts") or self._error(
             "No host specified. Specify hosts either in %s under the attribute %s or as a command line argument.",
             SCD_CONFIG, '"hosts"'
         )
 
-        self.user = args.user or config.get("user") or self._error(
+        self.user: str = args.user or config.get("user") or self._error(
             "No user specified. Specify user either in %s under the attribute %s or using the %s (%s) flag.",
             SCD_CONFIG, '"user"', "--user", "-u"
         )
 
         self.files = self._parse_files(config)
         self.scripts = self._parse_scripts(config)
-        self.programs = set(config.get("programs") or [])
-        self.shell = config.get("shell")
-        self.ignored_files = config.get("ignored_files") or []
+        self.programs: Set[str] = set(config.get("programs") or [])
+        self.shell: Optional[str] = config.get("shell")
+        self.ignored_files: List[str] = config.get("ignored_files") or []
         self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
         self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)
-        self.verbose = args.verbose
-        self.force = args.force
-        self.private_key = args.private_key or config.get("private_key") or None
-
+        self.verbose: bool = args.verbose
+        self.force: bool = args.force
+        self.private_key: str = args.private_key or config.get("private_key") or None
         self.password = self._get_password(config, args)
 
-    def _parse_files(self, config):
+    def _parse_files(self, config: Dict[str, any]) -> List[FileData]:
         files = config.get("files") or []
 
-        def _parse_file(file):
+        def _parse_file(file: any) -> FileData:
             if type(file) is dict:
                 if not (len(file) == 2 and "source_path" in file and "host_path" in file):
                     self.printer.error("Invalid file: %s. Dict items in file should contain two elements, source_path and the host_path.", file)
                     sys.exit(1)
 
-                return file["source_path"], file["host_path"]
+                return FileData(file["source_path"], file["host_path"])
             elif type(file) is list:
                 if len(file) != 2:
                     self.printer.error("Invalid file: %s. List items in file should contain two elements, the source path and the host path.", file)
                     sys.exit(1)
 
-                return file[0], file[1]
+                return FileData(file[0], file[1])
             elif type(file) is str:
-                return file, file
+                return FileData(file, file)
             else:
                 self.printer.error("Invalid file: %s. Expected a string, dict or a list.", file)
                 sys.exit(1)
 
         return [_parse_file(file) for file in files]
 
-    def _parse_scripts(self, config):
+    def _parse_scripts(self, config: Dict[str, any]) -> List[ScriptData]:
         scripts = config.get("scripts") or []
 
-        def _parse_scripts(script):
+        def _parse_scripts(script) -> ScriptData:
             if type(script) is dict and "file" in script and "as_sudo" in script:
-                return script["file"], script["as_sudo"]
+                return ScriptData(script["file"], script["as_sudo"])
             else:
                 self.printer.error("Invalid script: %s. Expected a dict with the entries 'file' and 'as_sudo'", script)
                 sys.exit(1)
 
         return [_parse_scripts(script) for script in scripts]
 
-    def _get_password(self, config, args):
+    def _get_password(self, config: Dict[str, any], args) -> str:
         password_file = args.password_file
         if password_file:
             if not os.path.isfile(password_file):
@@ -189,14 +189,14 @@ class Settings:
             self.printer.info("Enter password: ", end="")
             return getpass(prompt="")
 
-        return args.password or config.password
+        return args.password or config.get("password")
 
-    def _error(self, msg, *items):
+    def _error(self, msg: str, *items) -> None:
         self.printer.error(msg, *items)
         sys.exit(1)
 
-    def _print_colored_json(self, obj):
-        formatted_json = json.dumps(obj, sort_keys=True, indent=4)
+    def _print_colored_json(self, obj) -> None:
+        formatted_json = json.dumps(obj, default=lambda o: o.__dict__, sort_keys=True, indent=4)
         if not colors.no_color:
             formatted_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter()).strip()
         for line in formatted_json.split("\n"):

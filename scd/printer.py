@@ -1,3 +1,5 @@
+from typing import Tuple, Union, List, Callable
+
 from scd import colors
 from scd.constants import *
 
@@ -8,13 +10,13 @@ class Printer:
         self.prefix = colors.bold(colors.cyan("SCD │ "))
         self.indent = "    "
 
-    def info(self, output, *items, verbose=False, end="\n"):
+    def info(self, output: Union[str, List[str]], *items, verbose=False, end="\n") -> None:
         if not self.verbose_active and verbose:
             return
 
         self._print(output, items, colors.empty_color, colors.magenta, end)
 
-    def success(self, output, *items, verbose=False, end="\n"):
+    def success(self, output: Union[str, List[str]], *items, verbose=False, end="\n") -> None:
         if not self.verbose_active and verbose:
             return
 
@@ -22,7 +24,7 @@ class Printer:
 
         self._print(output, items, colors.green, green_bold, end)
 
-    def error(self, output, *items, verbose=False, end="\n"):
+    def error(self, output: Union[str, List[str]], *items, verbose=False, end="\n") -> None:
         if not self.verbose_active and verbose:
             return
 
@@ -30,14 +32,14 @@ class Printer:
 
         self._print(output, items, colors.red, red_bold, end)
 
-    def _print(self, output, items, str_color, item_color, end):
+    def _print(self, output: Union[str, List[str]], items: Tuple[any], str_color: Callable[[str], str], item_color: Callable[[str], str], end: str):
         if type(output) is str:
             self._print_string(output, items, str_color, item_color, end)
         elif type(output) is list:
             for line in output:
-                self._print_string(self.indent + line, [], str_color, item_color, end)
+                self._print_string(self.indent + line, tuple(), str_color, item_color, end)
 
-    def _print_string(self, output, items, str_color, item_color, end):
+    def _print_string(self, output: str, items: Tuple[any], str_color: Callable[[str], str], item_color: Callable[[str], str], end: str):
         print(self.prefix, end="")
         i = 0
         for s in output.split("%s"):
