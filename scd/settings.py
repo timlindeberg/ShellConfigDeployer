@@ -32,13 +32,20 @@ class Settings:
             "tree"
             "zsh"
         ],
-        "scripts": []
+        "scripts": [
+            {
+                "file": '',
+                "as_sudo": false
+            }
+        ]
     }
     """).strip()
 
     def __init__(self):
         args = parser.parse_args()
+
         colors.no_color = args.no_color
+
 
         self.printer = Printer(False)
 
@@ -122,9 +129,9 @@ class Settings:
         )
 
         self.files = self._parse_files(config)
+        self.scripts = self._parse_scripts(config)
         self.programs = set(config.get("programs") or [])
         self.shell = config.get("shell")
-        self.scripts = config.get("scripts") or []
         self.ignored_files = config.get("ignored_files") or []
         self.timeout = float(config.get("timeout") or self.DEFAULT_TIMEOUT)
         self.port = int(args.port or config.get("port") or self.DEFAULT_PORT)
@@ -135,9 +142,7 @@ class Settings:
         self.password = self._get_password(config, args)
 
     def _parse_files(self, config):
-        files = config.get("files")
-        if not files:
-            return []
+        files = config.get("files") or []
 
         def _parse_file(file):
             if type(file) is dict:
@@ -159,6 +164,18 @@ class Settings:
                 sys.exit(1)
 
         return [_parse_file(file) for file in files]
+
+    def _parse_scripts(self, config):
+        scripts = config.get("scripts") or []
+
+        def _parse_scripts(script):
+            if type(script) is dict and "file" in script and "as_sudo" in script:
+                return script["file"], script["as_sudo"]
+            else:
+                self.printer.error("Invalid script: %s. Expected a dict with the entries 'file' and 'as_sudo'", script)
+                sys.exit(1)
+
+        return [_parse_scripts(script) for script in scripts]
 
     def _get_password(self, config, args):
         password_file = args.password_file

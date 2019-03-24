@@ -40,7 +40,10 @@ server and what files should be deployed. Example:
         "tree"
     ],
      "scripts": [
-         "~/init.sh"
+         {
+            "file": "~/init.sh",
+            "as_sudo": false
+        }
      ]
 }
 ```
@@ -54,6 +57,11 @@ as well as `.git` folders.
 It will also install `tree` and `zsh`and set `zsh` as the default login shell
 for the user and run the script `~/init.sh` on the remote host.
 
+If a password is provided, `scd` will run commands on the remote host as sudo.
+This is accomplished by sending a file containing the password to the host
+and executing the commands using `cat password_file | sudo -S <command>`. This
+ensures that the password is never readable from other processes. The file
+is removed directly after executing the script, even on failure.
 
 ## Installation
 
@@ -111,9 +119,9 @@ This configuration will deploy the folder `~/.oh-my-zsh` to
 and `/a/b/c.txt` to `/c/b/a.txt`.
 
 ##### "scripts"
-A list of scripts to execute on the remote host. Each entry should be an 
-absolute path to a file containing a script that can be executed on the remote
-host
+A list of scripts to execute on the remote host. Each entry should be an object
+containg the entries `"file"`, a path to the script to be executed, and 
+`"as_sudo"`, a boolean determining whether to execute the script as sudo or not. 
 
 If a script executes successfully it won't be executed again. Since the 
 scripts are executed on the remote host they cannot access local files or
@@ -146,6 +154,9 @@ Selects which port to connect through. Can also be specified using the flags
 Path to a private key to use when connecting to servers. Can also be specified
 using the flags `--private_key` (`-i`). If not specified, no private will be
 used.
+
+##### "password"
+The password can be stored in the config file though it is not recommended.
 
 ## Flags
 

@@ -114,7 +114,7 @@ class ConfigDeployer:
             return []
 
         executed_scripts = []
-        for script in scripts:
+        for script, as_sudo in scripts:
             start = timer()
 
             self.printer.info("Executing script %s.", script)
@@ -126,7 +126,7 @@ class ConfigDeployer:
             with open(full_path) as script_file:
                 script_content = [s for s in script_file.read().split("\n") if s]
 
-            exit_code, output = self.host.execute_command(script_content, exit_on_failure=False)
+            exit_code, output = self.host.execute_command(script_content, exit_on_failure=False, as_sudo=as_sudo)
 
             time = get_time(start)
             self._handle_result(

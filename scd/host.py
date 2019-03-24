@@ -22,8 +22,12 @@ class Host:
         self.host_statuses = HostStatus()
         self.name = self._get_host_name(self.host_statuses, url)
         self.status = self.host_statuses[self.name]
+        self.has_password_file = False
 
     def execute_command(self, command, as_sudo=False, exit_on_failure=True, echo_commands=True):
+        if not self.password:
+            as_sudo = False
+
         commands = self._get_commands(command, exit_on_failure, echo_commands)
         home_path = f"/home/{self.user}"
         if as_sudo:
@@ -36,6 +40,7 @@ class Host:
             command = self._create_remote_script(commands, home_path, as_sudo)
             self.printer.info("Executing command on server:\n%s", command, verbose=True)
             session.exec_command(command)
+            self.has_password_file = False
 
             stdout = session.makefile("rb", -1)
             output = self._read_output(stdout)
@@ -55,14 +60,26 @@ class Host:
 
         return self._with_connection(_send_file)
 
+    def cleanup(self):
+        def _cleanup_password_file(connection):
+            session = connection.get_transport().open_session()
+            session.get_pty()  # So we can run sudo etc.
+            pwd_path = f"/home/{self.user}/{PWD_NAME}"
+            session.exec_command(f"rm {pwd_path}")
+
+        if self.has_password_file:
+            self._with_connection(_cleanup_password_file)
+
     def _send_pwd(self, home_path):
         with open(PWD_PATH, 'w') as f:
             f.write(self.password + '\n')
         self.send_file(PWD_PATH, f"{home_path}/{PWD_NAME}")
+        self.has_password_file = True
         if os.path.isfile(PWD_PATH):
             os.remove(PWD_PATH)
 
-    def _create_remote_script(self, commands, home_path, as_sudo):
+    @staticmethod
+    def _create_remote_script(commands, home_path, as_sudo):
         content = "\n".join(commands)
 
         if not as_sudo:
@@ -76,7 +93,7 @@ trap finish EXIT
 read -r -d '' SCRIPT <<- "EOM"
 {content}
 EOM
-cat '{home_path}/{PWD_NAME}' | sudo -S bash -c "$SCRIPT"
+cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
 """
 
     def _get_host_name(self, host_statues, url):
