@@ -5,7 +5,7 @@ from typing import List, Set, Optional
 
 from scd.data_structs import StatusData
 from scd.printer import Printer
-from scd.settings import Settings, ScriptData, FileData
+from scd.settings import Settings, FileData
 from scd.utils import date_to_time_stamp
 
 
@@ -52,9 +52,9 @@ class HostConfiguration:
 
         return files
 
-    def _scripts_to_run(self) -> List[ScriptData]:
+    def _scripts_to_run(self) -> List[str]:
         scripts = self.settings.scripts
-        return [s for s in scripts if s.script not in self.status.executed_scripts]
+        return [s for s in scripts if s not in self.status.executed_scripts]
 
     def _shell_to_change(self) -> Optional[str]:
         shell = self.settings.shell

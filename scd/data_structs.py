@@ -1,12 +1,6 @@
 from typing import List, Optional
 
 
-class ScriptData:
-    def __init__(self, script: str, as_sudo: bool):
-        self.script = script
-        self.as_sudo = as_sudo
-
-
 class FileData:
     def __init__(self, from_path: str, to_path: str):
         self.from_path = from_path

@@ -9,7 +9,7 @@ from pygments import highlight, lexers, formatters
 from scd import colors
 from scd.argparser import parser
 from scd.constants import *
-from scd.data_structs import FileData, ScriptData
+from scd.data_structs import FileData
 from scd.host_status import HostStatus
 from scd.printer import Printer
 
@@ -130,7 +130,7 @@ class Settings:
         )
 
         self.files = self._parse_files(config)
-        self.scripts = self._parse_scripts(config)
+        self.scripts: List[str] = config.get("scripts") or []
         self.programs: Set[str] = set(config.get("programs") or [])
         self.shell: Optional[str] = config.get("shell")
         self.ignored_files: List[str] = config.get("ignored_files") or []
@@ -164,18 +164,6 @@ class Settings:
                 sys.exit(1)
 
         return [_parse_file(file) for file in files]
-
-    def _parse_scripts(self, config: Dict[str, any]) -> List[ScriptData]:
-        scripts = config.get("scripts") or []
-
-        def _parse_scripts(script) -> ScriptData:
-            if type(script) is dict and "file" in script and "as_sudo" in script:
-                return ScriptData(script["file"], script["as_sudo"])
-            else:
-                self.printer.error("Invalid script: %s. Expected a dict with the entries 'file' and 'as_sudo'", script)
-                sys.exit(1)
-
-        return [_parse_scripts(script) for script in scripts]
 
     def _get_password(self, config: Dict[str, any], args) -> str:
         password_file = args.password_file

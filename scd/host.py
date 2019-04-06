@@ -28,33 +28,18 @@ class Host:
         self.name = self._get_host_name(url)
         self.status = self.host_status[self.name]
         self.needs_cleanup = False
+        self.home_path = f"/home/{self.user}"
 
-    def execute_command(self, commands: List[str], as_sudo=False, exit_on_failure=True, echo_commands=True) -> Tuple[int, List[str]]:
-        if not self.password:
-            as_sudo = False
-
-        commands = self._get_commands(commands, exit_on_failure, echo_commands)
-        home_path = f"/home/{self.user}"
+    def execute_command(self, commands: List[str],  exit_on_failure=True, echo_commands=True) -> Tuple[int, List[str]]:
+        as_sudo = self.password and any("sudo" in c for c in commands)
+        commands = self._get_commands(commands, as_sudo, exit_on_failure, echo_commands)
         if as_sudo:
-            self._send_pwd(home_path)
+            self._send_pwd()
 
         def _execute_command(connection: paramiko.SSHClient) -> Tuple[int, List[str]]:
-            session = connection.get_transport().open_session()
-            session.get_pty()  # So we can run sudo etc.
-
-            command = self._create_remote_script(commands, home_path, as_sudo)
-            self.printer.info("Executing command on server:", verbose=True)
-            self.printer.info([l for l in command.lstrip().rstrip().split('\n')], verbose=True)
-
-            session.exec_command(command)
+            res = self._execute(connection, "\n".join(commands))
             self.needs_cleanup = False
-
-            stdout = session.makefile("rb", -1)
-            output = self._read_output(stdout)
-
-            status: int = session.recv_exit_status()
-            session.close()
-            return status, output
+            return res
 
         return self._with_connection(_execute_command)
 
@@ -68,40 +53,31 @@ class Host:
         return self._with_connection(_send_file)
 
     def cleanup(self) -> None:
-        def _cleanup_password_file(connection: paramiko.SSHClient) -> None:
-            session = connection.get_transport().open_session()
-            session.get_pty()  # So we can run sudo etc.
-            pwd_path = f"/home/{self.user}/{PWD_NAME}"
-            session.exec_command(f"rm {pwd_path}")
-
         if self.needs_cleanup:
-            self._with_connection(_cleanup_password_file)
+            command = f"rm {self.home_path}/{PWD_NAME}"
+            self._with_connection(lambda conn: self._execute(conn, command))
 
-    def _send_pwd(self, home_path: str) -> None:
+    def _execute(self, connection: paramiko.SSHClient, command: str) -> Tuple[int, List[str]]:
+        channel = connection.get_transport().open_session()
+        channel.get_pty()
+
+        self.printer.info("Executing command on server:", verbose=True)
+        self.printer.info(command.split("\n"), verbose=True)
+
+        channel.exec_command(command)
+        output = self._read_output(channel)
+        status = channel.recv_exit_status()
+        channel.close()
+        
+        return status, output
+
+    def _send_pwd(self) -> None:
         with open(PWD_PATH, 'w') as f:
             f.write(self.password + '\n')
-        self.send_file(PWD_PATH, f"{home_path}/{PWD_NAME}")
+        self.send_file(PWD_PATH, f"{self.home_path}/{PWD_NAME}")
         self.needs_cleanup = True
         if os.path.isfile(PWD_PATH):
             os.remove(PWD_PATH)
-
-    @staticmethod
-    def _create_remote_script(commands: List[str], home_path: str, as_sudo: bool) -> str:
-        content = "\n".join(commands)
-
-        if not as_sudo:
-            return content
-
-        return fr"""
-function finish {{
-  rm -- {home_path}/{PWD_NAME} 
-}}
-trap finish EXIT
-read -r -d '' SCRIPT <<- "EOM"
-{content}
-EOM
-cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
-"""
 
     def _get_host_name(self, url: str) -> str:
         name = self.host_status.get_host_name(url)
@@ -119,18 +95,22 @@ cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
         self.host_status.add_host_mapping(url, name)
         return name
 
-    @staticmethod
-    def _get_commands(commands: List[str], exit_on_failure=True, echo_commands=True) -> List[str]:
-        if exit_on_failure and echo_commands:
-            c = ["set -ex"]
-        elif exit_on_failure:
-            c = ["set -e"]
-        elif echo_commands:
-            c = ["set -x"]
-        else:
-            c = []
+    def _get_commands(self, commands: List[str], as_sudo: bool, exit_on_failure=True, echo_commands=True) -> List[str]:
+        full_command = []
+        if exit_on_failure:
+            full_command.append("set -e")
+        if echo_commands:
+            full_command.append("set -x")
 
-        return c + commands
+        if not as_sudo:
+            return full_command + commands
+
+        full_command.extend([
+            f"function cleanup {{ rm -- {self.home_path}/{PWD_NAME} }}",
+            "trap cleanup EXIT"
+        ])
+        sudo_replacement = f"cat '{self.home_path}/{PWD_NAME}' | sudo --prompt='' -S"
+        return full_command + [c.replace("sudo", sudo_replacement) for c in commands]
 
     def _with_connection(self, do: Callable[[paramiko.SSHClient], T]) -> T:
         connection = self._connect()
@@ -179,13 +159,13 @@ cat '{home_path}/{PWD_NAME}' | sudo --prompt='' -S bash -c "$SCRIPT"
             raise DeploymentException
 
     @staticmethod
-    def _read_output(source) -> List[str]:
+    def _read_output(channel) -> List[str]:
         output = ""
-        while True:
-            lines = source.read().decode("utf-8", errors="replace")
-            if len(lines) == 0:
-                break
+        with channel.makefile("rb", -1) as stdout:
+            while True:
+                lines = stdout.read().decode("utf-8", errors="replace")
+                if len(lines) == 0:
+                    break
 
-            output += lines.replace("\r\r", "\n").replace("\r\n", "\n")
-        source.close()
+                output += lines.replace("\r\r", "\n").replace("\r\n", "\n")
         return [line.strip() for line in output.split("\n") if len(line) > 0]

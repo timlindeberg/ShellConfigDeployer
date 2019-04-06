@@ -4,7 +4,7 @@ from typing import List, Callable
 
 from scd.colors import *
 from scd.constants import *
-from scd.data_structs import DeploymentException, FileData, ScriptData
+from scd.data_structs import DeploymentException, FileData
 from scd.host import Host
 from scd.printer import Printer
 from scd.utils import *
@@ -48,11 +48,11 @@ class ConfigDeployer:
                 echo "Unsupported distribution."
                 exit 1
             fi
-            $PACKAGE_MANAGER $ANSWER_YES install {" ".join(programs)}
+            sudo $PACKAGE_MANAGER $ANSWER_YES install {" ".join(programs)}
         """
 
         lines = trim_multiline_str(select_package_manager).split("\n")
-        exit_code, output = self.host.execute_command(lines, as_sudo=True)
+        exit_code, output = self.host.execute_command(lines)
         elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
@@ -69,9 +69,9 @@ class ConfigDeployer:
         start = timer()
         self.printer.info("Changing default shell to %s", shell)
         user = self.host.user
-        command = [f"usermod -s $(which {shell}) {user}"]
+        command = [f"sudo usermod -s $(which {shell}) {user}"]
 
-        exit_code, output = self.host.execute_command(command, as_sudo=True)
+        exit_code, output = self.host.execute_command(command)
         elapsed_time = get_time(start)
         self._handle_result(
             exit_code,
@@ -109,21 +109,20 @@ class ConfigDeployer:
         if exit_code != 0:
             raise DeploymentException
 
-    def run_scripts(self, scripts: List[ScriptData]) -> List[str]:
+    def run_scripts(self, scripts: List[str]) -> List[str]:
         if len(scripts) == 0:
             return []
 
         executed_scripts: List[str] = []
-        for script_data in scripts:
-            if self.run_script(script_data):
-                executed_scripts.append(script_data.script)
+        for script in scripts:
+            if self.run_script(script):
+                executed_scripts.append(script)
 
         return executed_scripts
 
-    def run_script(self, script_data: ScriptData) -> bool:
+    def run_script(self, script: str) -> bool:
         start = timer()
 
-        script = script_data.script
         self.printer.info("Executing script %s.", script)
         full_path = os.path.expanduser(script)
         if not os.path.isfile(full_path):
@@ -133,7 +132,7 @@ class ConfigDeployer:
         with open(full_path) as script_file:
             script_content = [s for s in script_file.read().split("\n") if s]
 
-        exit_code, output = self.host.execute_command(script_content, exit_on_failure=False, as_sudo=script_data.as_sudo)
+        exit_code, output = self.host.execute_command(script_content, exit_on_failure=False)
 
         elapsed_time = get_time(start)
         self._handle_result(
